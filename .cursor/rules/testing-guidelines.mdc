@@ -1,0 +1,130 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 测试指南
+
+确保代码质量和可靠性的测试策略和最佳实践。
+
+## 测试项目结构
+
+### 主要测试项目
+- [tests/LiveWordXml.Tests/](mdc:tests/LiveWordXml.Tests) - 主测试项目
+- [LiveWordXml.Tests.csproj](mdc:tests/LiveWordXml.Tests/LiveWordXml.Tests.csproj) - 测试项目配置
+
+### 测试分类
+- **单元测试** - 测试单个类和方法
+- **集成测试** - 测试服务之间的交互
+- **UI测试** - 测试用户界面行为
+
+## 测试框架
+
+### 推荐框架
+- **xUnit** - 单元测试框架
+- **Moq** - 模拟对象框架
+- **FluentAssertions** - 断言库
+
+### 项目配置
+```xml
+<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
+<PackageReference Include="xunit" Version="2.4.2" />
+<PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
+<PackageReference Include="Moq" Version="4.20.69" />
+<PackageReference Include="FluentAssertions" Version="6.12.0" />
+```
+
+## 测试模式
+
+### 服务测试
+```csharp
+public class DocumentServiceTests
+{
+    private readonly Mock<IFileService> _fileServiceMock;
+    private readonly DocumentService _documentService;
+    
+    public DocumentServiceTests()
+    {
+        _fileServiceMock = new Mock<IFileService>();
+        _documentService = new DocumentService(_fileServiceMock.Object);
+    }
+    
+    [Fact]
+    public async Task LoadDocumentAsync_ValidFile_ReturnsTrue()
+    {
+        // Arrange
+        var filePath = "test.docx";
+        _fileServiceMock.Setup(x => x.ExistsAsync(filePath))
+                       .ReturnsAsync(true);
+        
+        // Act
+        var result = await _documentService.LoadDocumentAsync(filePath);
+        
+        // Assert
+        result.Should().BeTrue();
+    }
+}
+```
+
+### ViewModel测试
+```csharp
+public class MainViewModelTests
+{
+    private readonly Mock<IDocumentService> _documentServiceMock;
+    private readonly MainViewModel _viewModel;
+    
+    [Fact]
+    public async Task LoadDocumentCommand_ExecutesSuccessfully()
+    {
+        // 测试命令执行
+    }
+}
+```
+
+## 测试数据
+
+### 测试文档
+- 创建最小化的测试Word文档
+- 包含各种文本格式和结构
+- 使用资源文件嵌入测试数据
+
+### 模拟数据
+- 使用 `Mock<T>` 创建服务模拟
+- 设置预期的返回值和行为
+- 验证方法调用
+
+## 异步测试
+
+### 异步方法测试
+```csharp
+[Fact]
+public async Task ExtractXmlAsync_ValidText_ReturnsExpectedXml()
+{
+    // Arrange
+    var inputText = "test text";
+    var expectedXml = "<w:p>test text</w:p>";
+    
+    // Act
+    var result = await _textMatchingService.ExtractXmlAsync(inputText);
+    
+    // Assert
+    result.Should().Be(expectedXml);
+}
+```
+
+### 超时处理
+- 设置合理的测试超时时间
+- 测试取消令牌的处理
+
+## 覆盖率目标
+
+### 最低覆盖率
+- 服务类：90%以上
+- ViewModel：80%以上
+- 业务逻辑：95%以上
+
+### 排除项
+- UI代码隐藏文件
+- 自动生成的代码
+- 简单的属性访问器
+

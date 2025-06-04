@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# LiveWordXml 项目概览
+
+这是一个基于WPF的C# .NET 8.0应用程序，用于实时提取Word文档的XML内容。
+
+## 项目架构
+
+### 核心项目
+- **src/LiveWordXml.Wpf** - 主WPF应用程序
+- **tests/LiveWordXml.Tests** - 单元测试项目
+
+### 主要功能
+实时Word文档XML提取器，允许用户选择文本并立即获取对应的XML内容。
+
+## 技术栈
+- **.NET 8.0** - 目标框架
+- **WPF** - 用户界面框架
+- **MVVM模式** - 使用CommunityToolkit.Mvvm
+- **OpenXML** - Word文档处理 (DocumentFormat.OpenXml v2.20.0)
+
+## 项目结构
+- [LiveWordXml.sln](mdc:LiveWordXml.sln) - 解决方案文件
+- [README.md](mdc:README.md) - 项目文档
+- **src/LiveWordXml.Wpf/** - 主应用程序代码
+  - [App.xaml](mdc:src/LiveWordXml.Wpf/App.xaml) - 应用程序入口点
+  - [MainWindow.xaml](mdc:src/LiveWordXml.Wpf/MainWindow.xaml) - 主窗口UI
+  - **Services/** - 业务逻辑服务
+  - **ViewModels/** - MVVM视图模型
+  - **Models/** - 数据模型
+- **tests/LiveWordXml.Tests/** - 测试代码
+
+## 开发指南
+1. 遵循MVVM设计模式
+2. 使用依赖注入和服务架构
+3. 代码注释使用英文
+4. 遵循C#编码规范
+

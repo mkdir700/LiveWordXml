@@ -1,0 +1,97 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# C# 编码标准和最佳实践
+
+遵循统一的编码标准以确保代码质量和可维护性。
+
+## 命名约定
+
+### 类和方法
+- 使用 PascalCase：`DocumentService`, `LoadDocumentAsync()`
+- 接口以 "I" 开头：`IDocumentService`
+- 异步方法以 "Async" 结尾：`ProcessTextAsync()`
+
+### 字段和属性
+- 私有字段使用 camelCase 和下划线前缀：`_documentService`
+- 公共属性使用 PascalCase：`SelectedText`
+- 常量使用 PascalCase：`MaxRetryCount`
+
+### 变量
+- 局部变量使用 camelCase：`extractedXml`
+- 参数使用 camelCase：`documentPath`
+
+## 代码注释规范
+
+### XML 文档注释
+```csharp
+/// <summary>
+/// Extracts XML content from the loaded Word document based on the specified text.
+/// </summary>
+/// <param name="text">The text to search for in the document</param>
+/// <returns>A task that represents the asynchronous operation containing the extracted XML</returns>
+public async Task<string> ExtractXmlAsync(string text)
+{
+    // Implementation
+}
+```
+
+### 内联注释
+- 使用英文编写所有代码注释
+- 解释复杂逻辑和业务规则
+- 避免显而易见的注释
+
+## 异步编程模式
+
+### 异步方法实现
+```csharp
+public async Task<bool> LoadDocumentAsync(string filePath)
+{
+    try
+    {
+        using var stream = File.OpenRead(filePath);
+        await ProcessDocumentAsync(stream);
+        return true;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Failed to load document: {FilePath}", filePath);
+        return false;
+    }
+}
+```
+
+### ConfigureAwait 使用
+- 在库代码中使用 `ConfigureAwait(false)`
+- UI代码中保持默认行为
+
+## 错误处理
+
+### 异常处理
+- 使用具体的异常类型
+- 记录详细的错误信息
+- 避免吞咽异常
+
+### 返回值模式
+- 对于可能失败的操作返回 `bool` 或结果对象
+- 使用 nullable 类型表示可选值
+
+## 性能考虑
+
+### 资源管理
+- 使用 `using` 语句管理 IDisposable 资源
+- 及时释放大对象引用
+
+### 集合操作
+- 优先使用 LINQ 进行集合查询
+- 避免不必要的集合复制
+
+## 测试相关
+
+### 可测试性
+- 依赖注入使代码易于测试
+- 避免静态依赖
+- 使用接口抽象外部依赖
+

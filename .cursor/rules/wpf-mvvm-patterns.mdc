@@ -1,0 +1,228 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# WPF MVVM 开发模式
+
+本项目使用 MVVM (Model-View-ViewModel) 架构模式，确保 UI 与业务逻辑的分离。
+
+## 核心组件
+
+### ViewModelsel.cs](mdc:src/LiveWordXml.Wpf/ViewModels/MainViewModel.cs) - 主窗口的视图模型
+- 使用 `Commu` 框架实现
+- 包含现防抖搜索机制和线程安全
+
+### Views
+l](mdc:src/LiveWordXml.Wpf/MainWindow.xaml) - 主窗口界面
+- [MainWindow.xaml.cs](mdc:src/LiveWordXml.Wpf/MainWindow.xaml.cs) - 主窗口代码隐藏
+
+### Models
+
+- [MatchedElement.cs](mdc:src/LiveWordXml.Wpf/Models/MatchedElement.cs) - 匹配元素数据模型
+
+## MVVM 最佳实践
+
+### ViewModel 规范
+
+- 继承 `ObservableObject` 或实现 `INotifyPropertyChanged`
+- 使用 `[ObservableProperty]` 特性自动生成属性
+- 使用 `[RelayCommand]` 特性创建命令
+- 避免在 ViewModel 中直接操作 UI 元素
+- 实现 `IDisposable` 进行资源清理
+
+### 数据绑定
+
+- 使用双向数据绑定 `{Binding PropertyName, Mode=TwoWay}`
+- 命令绑定 `{Binding CommandName}`
+- 转换器用于数据格式化
+
+### 依赖注入
+
+- 通过构造函数注入服务依赖
+- 保持 ViewModel 的可测试性
+
+## 防抖搜索实现
+
+### 核心组件
+
+防抖机制用于防止用户快速输入时产生过多的 API 调用，提升性能和用户体验。
+
+```csharp
+// 防抖相关字段
+private Timer _debounceTimer;
+private readonly int _debounceDelay = 500; // 500毫秒延迟
+private CancellationTokenSource _searchCancellationTokenSource;
+private readonly Dispatcher _dispatcher;
+```
+
+### 文本输入处理
+
+`SelectedText` 属性设置器触发防抖处理：
+
+- 立即更新 `SearchHighlightText` 提供 UI 反馈
+- 调用 `DebouncedProcessSelectedText()` 安排实际搜索
+
+```csharp
+public string SelectedText
+{
+    get => _selectedText;
+    set
+    {
+        if (SetProperty(ref _selectedText, value))
+        {
+            SearchHighlightText = value; // 更新搜索高亮文本
+            DebouncedProcessSelectedText();
+        }
+    }
+}
+```
+
+### 防抖方法实现
+
+`DebouncedProcessSelectedText()` 实现核心防抖逻辑：
+
+```csharp
+private void DebouncedProcessSelectedText()
+{
+    // 取消之前的搜索操作
+    _searchCancellationTokenSource?.Cancel();
+    _searchCancellationTokenSource = new CancellationTokenSource();
+
+    // 重置防抖计时器
+    _debounceTimer?.Dispose();
+    _debounceTimer = new Timer(async _ =>
+    {
+        try
+        {
+            if (!_searchCancellationTokenSource.Token.IsCancellationRequested)
+            {
+                await ProcessSelectedTextAsync(_searchCancellationTokenSource.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 搜索被取消时的预期行为
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"搜索时出错: {ex.Message}";
+        }
+    }, null, _debounceDelay, Timeout.Infinite);
+}
+```
+
+### 线程安全
+
+所有 UI 更新使用 `_dispatcher.InvokeAsync()` 确保线程安全：
+
+```csharp
+// UI集合更新
+await _dispatcher.InvokeAsync(() =>
+{
+    MatchedElements.Clear();
+
+    for (int i = 0; i < matches.Count; i++)
+    {
+        // 在循环中检查取消标记
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
+        var element = new MatchedElement { /* ... */ };
+        MatchedElements.Add(element);
+    }
+
+    OnPropertyChanged(nameof(MatchCount));
+    OnPropertyChanged(nameof(CurrentMatchInfo));
+});
+```
+
+### 关键线程安全规则
+
+⚠️ **永远不要在后台线程直接修改 UI 集合**
+✅ **始终使用 Dispatcher.InvokeAsync 进行 UI 更新**
+✅ **在昂贵操作前检查取消标记**
+
+```csharp
+// 正确的UI更新方式
+await _dispatcher.InvokeAsync(() =>
+{
+    MatchedElements.Clear();
+    MatchedElements.Add(newElement);
+});
+
+// 错误的方式 - 不要这样做！
+MatchedElements.Clear(); // 在后台线程中
+```
+
+### 资源管理
+
+ViewModel 实现 `IDisposable` 进行适当的清理：
+
+```csharp
+public void Dispose()
+{
+    _debounceTimer?.Dispose();
+    _searchCancellationTokenSource?.Cancel();
+    _searchCancellationTokenSource?.Dispose();
+}
+```
+
+在 [MainWindow.xaml.cs](mdc:src/LiveWordXml.Wpf/MainWindow.xaml.cs) 的 `OnClosed` 事件中调用：
+
+```csharp
+protected override void OnClosed(EventArgs e)
+{
+    ViewModel?.Dispose();
+    base.OnClosed(e);
+}
+```
+
+### 调优参数
+
+- **防抖延迟**: 当前为 500 毫秒（调整 `_debounceDelay` 字段）
+- **取消检查点**: 在 UI 更新前和循环中添加
+- **性能优化**: 使用 `Task.Run()` 进行 CPU 密集型操作
+
+### 错误处理
+
+```csharp
+catch (OperationCanceledException)
+{
+    // 搜索被取消时的预期行为，不显示错误
+    await _dispatcher.InvokeAsync(() => StatusMessage = "搜索已取消");
+}
+catch (Exception ex)
+{
+    await _dispatcher.InvokeAsync(() =>
+    {
+        StatusMessage = $"处理文本时出错: {ex.Message}";
+        _notificationService.ShowError($"处理文本时出错: {ex.Message}");
+    });
+}
+```
+
+## 代码示例模式
+
+```csharp
+[ObservableProperty]
+private string selectedText = string.Empty;
+
+[RelayCommand]
+private async Task LoadDocumentAsync()
+{
+    try
+    {
+        StatusMessage = "正在加载文档...";
+        // 异步操作实现
+        await Task.Run(() => _documentService.LoadDocument(fileName));
+        StatusMessage = "文档加载成功";
+    }
+    catch (Exception ex)
+    {
+        StatusMessage = $"加载文档时出错: {ex.Message}";
+    }
+}
+```
+
+

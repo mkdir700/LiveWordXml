@@ -1,0 +1,99 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# OpenXML 处理指南
+
+本项目使用 DocumentFormat.OpenXml 库处理Word文档，遵循以下最佳实践。
+
+## 核心概念
+
+### Word文档结构
+- **Document** - 文档根元素
+- **Body** - 文档主体
+- **Paragraph** - 段落元素
+- **Run** - 文本运行块
+- **Text** - 实际文本内容
+
+### 相关文件
+- [DocumentService.cs](mdc:src/LiveWordXml.Wpf/Services/DocumentService.cs) - 主要OpenXML处理逻辑
+- [TextMatchingService.cs](mdc:src/LiveWordXml.Wpf/Services/TextMatchingService.cs) - 文本匹配算法
+
+## OpenXML 最佳实践
+
+### 文档加载
+```csharp
+using (var wordDocument = WordprocessingDocument.Open(filePath, false))
+{
+    var mainPart = wordDocument.MainDocumentPart;
+    var document = mainPart.Document;
+    // 处理文档内容
+}
+```
+
+### 文本提取
+- 使用 `InnerText` 属性获取纯文本
+- 使用 `OuterXml` 属性获取完整XML
+- 遍历段落和运行块进行精确匹配
+
+### XML 序列化
+- 保持原始XML格式和命名空间
+- 处理嵌套元素和属性
+- 确保XML结构完整性
+
+## 文本匹配策略
+
+### 精确匹配
+- 字符级别的完全匹配
+- 考虑空白字符和格式
+
+### 模糊匹配
+- 忽略格式差异
+- 处理换行和段落分隔
+- 支持部分文本匹配
+
+### 性能优化
+- 缓存文档结构
+- 使用索引加速查找
+- 避免重复解析
+
+## 常见模式
+
+### 段落遍历
+```csharp
+foreach (var paragraph in document.Body.Elements<Paragraph>())
+{
+    var paragraphText = paragraph.InnerText;
+    if (paragraphText.Contains(searchText))
+    {
+        return paragraph.OuterXml;
+    }
+}
+```
+
+### 运行块处理
+```csharp
+foreach (var run in paragraph.Elements<Run>())
+{
+    foreach (var text in run.Elements<Text>())
+    {
+        if (text.Text.Contains(searchText))
+        {
+            return run.OuterXml;
+        }
+    }
+}
+```
+
+## 错误处理
+
+### 文档损坏
+- 验证文档格式
+- 处理解析异常
+- 提供错误反馈
+
+### 内存管理
+- 及时释放文档资源
+- 避免内存泄漏
+- 使用using语句确保清理
