@@ -11,5 +11,6 @@
     <ItemGroup>
         <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+        <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
     </ItemGroup>
 </Project>

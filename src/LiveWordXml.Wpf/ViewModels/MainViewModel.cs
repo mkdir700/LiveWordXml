@@ -2,8 +2,10 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LiveWordXml.Wpf.Models;
@@ -11,7 +13,7 @@ using LiveWordXml.Wpf.Services;
 
 namespace LiveWordXml.Wpf.ViewModels
 {
-    public class MainViewModel : ObservableObject
+    public class MainViewModel : ObservableObject, IDisposable
     {
         private readonly DocumentService _documentService;
         private readonly ClipboardService _clipboardService;
@@ -23,11 +25,19 @@ namespace LiveWordXml.Wpf.ViewModels
         private string _selectedXml = string.Empty;
         private bool _isFormattedXml = true;
         private int _currentMatchIndex = -1;
-        private MatchedElement _selectedMatch; public MainViewModel()
+        private MatchedElement _selectedMatch;
+        private string _searchHighlightText = string.Empty;
+        
+        // Debounce related fields
+        private Timer _debounceTimer;
+        private readonly int _debounceDelay = 500; // 500ms delay
+        private CancellationTokenSource _searchCancellationTokenSource;
+        private readonly Dispatcher _dispatcher;         public MainViewModel()
         {
             _documentService = new DocumentService();
             _clipboardService = new ClipboardService();
             _notificationService = new NotificationService();
+            _dispatcher = Dispatcher.CurrentDispatcher;
 
             MatchedElements = new ObservableCollection<MatchedElement>();
 
@@ -38,6 +48,7 @@ namespace LiveWordXml.Wpf.ViewModels
             NextCommand = new RelayCommand(NavigateNext, CanNavigateNext);
             CopyXmlCommand = new RelayCommand(CopyXml, () => !string.IsNullOrEmpty(SelectedXml));
             SaveXmlCommand = new AsyncRelayCommand(SaveXmlAsync, () => !string.IsNullOrEmpty(SelectedXml));
+            ScrollToSearchCommand = new RelayCommand(() => OnScrollToSearchRequested?.Invoke());
         }
 
         // Properties
@@ -48,7 +59,8 @@ namespace LiveWordXml.Wpf.ViewModels
             {
                 if (SetProperty(ref _selectedText, value))
                 {
-                    _ = ProcessSelectedTextAsync();
+                    SearchHighlightText = value; // Update search highlight text
+                    DebouncedProcessSelectedText();
                 }
             }
         }
@@ -106,6 +118,15 @@ namespace LiveWordXml.Wpf.ViewModels
                 }
             }
         }
+
+        public string SearchHighlightText
+        {
+            get => _searchHighlightText;
+            set => SetProperty(ref _searchHighlightText, value);
+        }
+
+        // Event for requesting scroll to search text
+        public event Action OnScrollToSearchRequested;
         public ObservableCollection<MatchedElement> MatchedElements { get; }
 
         public bool IsDocumentLoaded => _documentService.IsDocumentLoaded;
@@ -128,8 +149,37 @@ namespace LiveWordXml.Wpf.ViewModels
         public IRelayCommand NextCommand { get; }
         public IRelayCommand CopyXmlCommand { get; }
         public IAsyncRelayCommand SaveXmlCommand { get; }
+        public IRelayCommand ScrollToSearchCommand { get; }
 
         // Methods
+        private void DebouncedProcessSelectedText()
+        {
+            // Cancel previous search if still running
+            _searchCancellationTokenSource?.Cancel();
+            _searchCancellationTokenSource = new CancellationTokenSource();
+            
+            // Reset the debounce timer
+            _debounceTimer?.Dispose();
+            _debounceTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    if (!_searchCancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        await ProcessSelectedTextAsync(_searchCancellationTokenSource.Token);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when search is cancelled
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Error during search: {ex.Message}";
+                }
+            }, null, _debounceDelay, Timeout.Infinite);
+        }
+
         private async Task LoadDocumentAsync()
         {
             try
@@ -206,57 +256,80 @@ namespace LiveWordXml.Wpf.ViewModels
             }
         }
 
-        private async Task ProcessSelectedTextAsync()
+        private async Task ProcessSelectedTextAsync(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(SelectedText) || !_documentService.IsDocumentLoaded)
             {
-                MatchedElements.Clear();
-                SelectedXml = string.Empty;
-                OnPropertyChanged(nameof(MatchCount));
-                OnPropertyChanged(nameof(CurrentMatchInfo));
+                await _dispatcher.InvokeAsync(() =>
+                {
+                    MatchedElements.Clear();
+                    SelectedXml = string.Empty;
+                    OnPropertyChanged(nameof(MatchCount));
+                    OnPropertyChanged(nameof(CurrentMatchInfo));
+                });
                 return;
             }
 
             try
             {
-                StatusMessage = "Searching for matches...";
+                await _dispatcher.InvokeAsync(() => StatusMessage = "Searching for matches...");
 
                 var textMatchingService = new TextMatchingService(_documentService);
-                var matches = await Task.Run(() => textMatchingService.MatchTextToXml(SelectedText));
+                var currentText = SelectedText; // Capture current text value
+                var matches = await Task.Run(() => textMatchingService.MatchTextToXml(currentText), cancellationToken);
 
-                MatchedElements.Clear();
+                // Check if operation was cancelled after async operation
+                cancellationToken.ThrowIfCancellationRequested();
 
-                for (int i = 0; i < matches.Count; i++)
+                // Update UI on the main thread
+                await _dispatcher.InvokeAsync(() =>
                 {
-                    var element = new MatchedElement
+                    MatchedElements.Clear();
+
+                    for (int i = 0; i < matches.Count; i++)
                     {
-                        Index = i + 1,
-                        XmlContent = matches[i],
-                        ElementType = ExtractElementType(matches[i]),
-                        Preview = CreatePreview(matches[i])
-                    };
-                    MatchedElements.Add(element);
-                }
+                        // Check cancellation during loop
+                        if (cancellationToken.IsCancellationRequested)
+                            return;
+                        
+                        var element = new MatchedElement
+                        {
+                            Index = i + 1,
+                            XmlContent = matches[i],
+                            ElementType = ExtractElementType(matches[i]),
+                            Preview = CreatePreview(matches[i])
+                        };
+                        MatchedElements.Add(element);
+                    }
 
-                OnPropertyChanged(nameof(MatchCount));
-                OnPropertyChanged(nameof(CurrentMatchInfo));
+                    OnPropertyChanged(nameof(MatchCount));
+                    OnPropertyChanged(nameof(CurrentMatchInfo));
 
-                if (MatchedElements.Any())
-                {
-                    SelectedMatch = MatchedElements.First();
-                    StatusMessage = $"Found {MatchCount} matching elements";
-                    _notificationService.ShowNotification($"Found {MatchCount} matching XML elements");
-                }
-                else
-                {
-                    StatusMessage = "No matching elements found";
-                    SelectedXml = string.Empty;
-                }
+                    if (MatchedElements.Any())
+                    {
+                        SelectedMatch = MatchedElements.First();
+                        StatusMessage = $"Found {MatchCount} matching elements";
+                        _notificationService.ShowNotification($"Found {MatchCount} matching XML elements");
+                    }
+                    else
+                    {
+                        StatusMessage = "No matching elements found";
+                        SelectedXml = string.Empty;
+                    }
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when search is cancelled, don't show error
+                await _dispatcher.InvokeAsync(() => StatusMessage = "Search cancelled");
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error processing text: {ex.Message}";
-                _notificationService.ShowError($"Error processing text: {ex.Message}");
+                await _dispatcher.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error processing text: {ex.Message}";
+                    _notificationService.ShowError($"Error processing text: {ex.Message}");
+                });
             }
         }
 
@@ -346,6 +419,13 @@ namespace LiveWordXml.Wpf.ViewModels
             // Create a short preview of the XML content
             var preview = xml.Replace("\r\n", " ").Replace("\n", " ").Trim();
             return preview.Length > 60 ? preview.Substring(0, 60) + "..." : preview;
+        }
+
+        public void Dispose()
+        {
+            _debounceTimer?.Dispose();
+            _searchCancellationTokenSource?.Cancel();
+            _searchCancellationTokenSource?.Dispose();
         }
     }
 }
