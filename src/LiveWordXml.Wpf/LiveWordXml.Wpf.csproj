@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <AssemblyTitle>LiveWordXml WPF</AssemblyTitle>
+        <AssemblyDescription>Modern real-time Word document XML extractor with WPF UI</AssemblyDescription>
+        <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    </ItemGroup>
+</Project>
