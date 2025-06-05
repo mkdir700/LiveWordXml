@@ -6,29 +6,139 @@
              xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <avalonedit:TextEditor x:Name="XmlTextEditor"
-                               FontFamily="Consolas"
-                               FontSize="12"
-                               ShowLineNumbers="True"
-                               IsReadOnly="True"
-                               WordWrap="False"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Auto"
-                               Background="#FAFAFA"
-                               Foreground="#333333"
-                               LineNumbersForeground="#888888">
-            <avalonedit:TextEditor.Options>
-                <avalonedit:TextEditorOptions ShowSpaces="False"
-                                              ShowTabs="False"
-                                              ShowEndOfLine="False"
-                                              ShowBoxForControlCharacters="False"
-                                              EnableHyperlinks="False"
-                                              EnableEmailHyperlinks="False"
-                                              HighlightCurrentLine="True"
-                                              CutCopyWholeLine="True"
-                                              AllowScrollBelowDocument="False"/>
-            </avalonedit:TextEditor.Options>
-        </avalonedit:TextEditor>
-    </Grid>
-</UserControl> 
+    
+    <UserControl.Resources>
+        <!-- Modern Editor Style -->
+        <Style x:Key="ModernEditorStyle" TargetType="avalonedit:TextEditor">
+            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Courier New"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="ShowLineNumbers" Value="True"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="WordWrap" Value="False"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Background" Value="#FAFBFC"/>
+            <Setter Property="Foreground" Value="#24292F"/>
+            <Setter Property="LineNumbersForeground" Value="#656D76"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="6">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Editor Header -->
+            <Border Grid.Row="0"
+                    Background="#F6F8FA"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="12,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- File Type Indicator -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Border Background="#FFF3CD" 
+                                BorderBrush="#FFEAA7" 
+                                BorderThickness="1" 
+                                CornerRadius="3" 
+                                Padding="6,2">
+                            <TextBlock Text="XML" 
+                                       FontSize="10" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="#856404"/>
+                        </Border>
+                        <TextBlock Text="只读模式" 
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Editor Info -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="UTF-8" 
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"/>
+                        <TextBlock Text="LF" 
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Text Editor -->
+            <avalonedit:TextEditor Grid.Row="1"
+                                   x:Name="XmlTextEditor"
+                                   Style="{StaticResource ModernEditorStyle}">
+                <avalonedit:TextEditor.Options>
+                    <avalonedit:TextEditorOptions ShowSpaces="False"
+                                                  ShowTabs="False"
+                                                  ShowEndOfLine="False"
+                                                  ShowBoxForControlCharacters="False"
+                                                  EnableHyperlinks="False"
+                                                  EnableEmailHyperlinks="False"
+                                                  HighlightCurrentLine="True"
+                                                  CutCopyWholeLine="True"
+                                                  AllowScrollBelowDocument="False"
+                                                  IndentationSize="2"
+                                                  ConvertTabsToSpaces="True"/>
+                </avalonedit:TextEditor.Options>
+            </avalonedit:TextEditor>
+
+            <!-- Loading Overlay -->
+            <Border x:Name="LoadingOverlay"
+                    Grid.Row="1"
+                    Background="#80FFFFFF"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" 
+                            VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" 
+                                 Width="100" 
+                                 Height="4"
+                                 Style="{DynamicResource {x:Type ProgressBar}}"/>
+                    <TextBlock Text="正在加载 XML..." 
+                               Style="{StaticResource BodyTextStyle}"
+                               HorizontalAlignment="Center"
+                               Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Empty State -->
+            <Border x:Name="EmptyState"
+                    Grid.Row="1"
+                    Background="Transparent"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" 
+                            VerticalAlignment="Center"
+                            Opacity="0.6">
+                    <TextBlock Text="📄" 
+                               FontSize="48" 
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,16"/>
+                    <TextBlock Text="暂无 XML 内容" 
+                               Style="{StaticResource SubheaderTextStyle}"
+                               HorizontalAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text="请选择一个匹配项或加载文档以查看 XML 内容" 
+                               Style="{StaticResource BodyTextStyle}"
+                               HorizontalAlignment="Center"
+                               Foreground="{StaticResource TextTertiaryBrush}"
+                               Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

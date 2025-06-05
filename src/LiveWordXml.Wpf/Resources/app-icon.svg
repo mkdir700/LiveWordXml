@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background Circle -->
+    <circle cx="64" cy="64" r="60" fill="#2563eb" stroke="#1e40af" stroke-width="2" />
+
+    <!-- Document Background -->
+    <rect x="30" y="25" width="68" height="78" rx="4" fill="#ffffff" stroke="#e5e7eb"
+        stroke-width="1" />
+
+    <!-- XML Brackets -->
+    <text x="40" y="50" font-family="monospace" font-size="24" font-weight="bold" fill="#dc2626">
+        &lt;</text>
+    <text x="80" y="50" font-family="monospace" font-size="24" font-weight="bold" fill="#dc2626">
+        &gt;</text>
+
+    <!-- XML Content Lines -->
+    <rect x="45" y="55" width="38" height="2" fill="#6b7280" rx="1" />
+    <rect x="45" y="62" width="28" height="2" fill="#6b7280" rx="1" />
+    <rect x="45" y="69" width="35" height="2" fill="#6b7280" rx="1" />
+
+    <!-- Closing Brackets -->
+    <text x="36" y="85" font-family="monospace" font-size="20" font-weight="bold" fill="#dc2626">
+        &lt;/</text>
+    <text x="80" y="85" font-family="monospace" font-size="20" font-weight="bold" fill="#dc2626">
+        &gt;</text>
+
+    <!-- Live Indicator -->
+    <circle cx="90" cy="35" r="6" fill="#10b981" />
+    <circle cx="90" cy="35" r="3" fill="#ffffff" />
+</svg> 

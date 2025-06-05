@@ -18,6 +18,7 @@ namespace LiveWordXml.Wpf.ViewModels
         private readonly DocumentService _documentService;
         private readonly ClipboardService _clipboardService;
         private readonly NotificationService _notificationService;
+        private readonly DocumentStructureService _documentStructureService;
 
         private string _selectedText = string.Empty;
         private string _documentStatus = "No document loaded";
@@ -27,16 +28,22 @@ namespace LiveWordXml.Wpf.ViewModels
         private int _currentMatchIndex = -1;
         private MatchedElement _selectedMatch;
         private string _searchHighlightText = string.Empty;
+        private DocumentStructureNode _documentStructure;
+        private DocumentStructureNode _selectedStructureNode;
+        private bool _isStructureTreeVisible = true;
         
         // Debounce related fields
         private Timer _debounceTimer;
         private readonly int _debounceDelay = 500; // 500ms delay
         private CancellationTokenSource _searchCancellationTokenSource;
-        private readonly Dispatcher _dispatcher;         public MainViewModel()
+        private readonly Dispatcher _dispatcher;
+
+        public MainViewModel()
         {
             _documentService = new DocumentService();
             _clipboardService = new ClipboardService();
             _notificationService = new NotificationService();
+            _documentStructureService = new DocumentStructureService(_documentService);
             _dispatcher = Dispatcher.CurrentDispatcher;
 
             MatchedElements = new ObservableCollection<MatchedElement>();
@@ -49,6 +56,11 @@ namespace LiveWordXml.Wpf.ViewModels
             CopyXmlCommand = new RelayCommand(CopyXml, () => !string.IsNullOrEmpty(SelectedXml));
             SaveXmlCommand = new AsyncRelayCommand(SaveXmlAsync, () => !string.IsNullOrEmpty(SelectedXml));
             ScrollToSearchCommand = new RelayCommand(() => OnScrollToSearchRequested?.Invoke());
+            
+            // Document Structure Commands
+            ExpandAllCommand = new RelayCommand(ExpandAll, () => DocumentStructure != null);
+            CollapseAllCommand = new RelayCommand(CollapseAll, () => DocumentStructure != null);
+            RefreshStructureCommand = new AsyncRelayCommand(RefreshDocumentStructureAsync, () => IsDocumentLoaded);
         }
 
         // Properties
@@ -61,6 +73,7 @@ namespace LiveWordXml.Wpf.ViewModels
                 {
                     SearchHighlightText = value; // Update search highlight text
                     DebouncedProcessSelectedText();
+                    HighlightNodesWithText(value);
                 }
             }
         }
@@ -125,6 +138,41 @@ namespace LiveWordXml.Wpf.ViewModels
             set => SetProperty(ref _searchHighlightText, value);
         }
 
+        public DocumentStructureNode DocumentStructure
+        {
+            get => _documentStructure;
+            set
+            {
+                SetProperty(ref _documentStructure, value);
+                ExpandAllCommand.NotifyCanExecuteChanged();
+                CollapseAllCommand.NotifyCanExecuteChanged();
+            }
+        }
+
+        public DocumentStructureNode SelectedStructureNode
+        {
+            get => _selectedStructureNode;
+            set
+            {
+                if (SetProperty(ref _selectedStructureNode, value))
+                {
+                    if (value != null)
+                    {
+                        // 当选择结构树节点时，显示对应的XML内容
+                        SelectedXml = IsFormattedXml
+                            ? _documentService.FormatXml(value.XmlContent)
+                            : value.XmlContent;
+                    }
+                }
+            }
+        }
+
+        public bool IsStructureTreeVisible
+        {
+            get => _isStructureTreeVisible;
+            set => SetProperty(ref _isStructureTreeVisible, value);
+        }
+
         // Event for requesting scroll to search text
         public event Action OnScrollToSearchRequested;
         public ObservableCollection<MatchedElement> MatchedElements { get; }
@@ -142,7 +190,9 @@ namespace LiveWordXml.Wpf.ViewModels
                     return $"Match {_currentMatchIndex + 1} of {MatchCount}";
                 return $"{MatchCount} matches found";
             }
-        }        // Commands
+        }
+
+        // Commands
         public IAsyncRelayCommand LoadDocumentCommand { get; }
         public IAsyncRelayCommand RefreshDocumentCommand { get; }
         public IRelayCommand PreviousCommand { get; }
@@ -150,6 +200,11 @@ namespace LiveWordXml.Wpf.ViewModels
         public IRelayCommand CopyXmlCommand { get; }
         public IAsyncRelayCommand SaveXmlCommand { get; }
         public IRelayCommand ScrollToSearchCommand { get; }
+        
+        // Document Structure Commands
+        public IRelayCommand ExpandAllCommand { get; }
+        public IRelayCommand CollapseAllCommand { get; }
+        public IAsyncRelayCommand RefreshStructureCommand { get; }
 
         // Methods
         private void DebouncedProcessSelectedText()
@@ -191,15 +246,21 @@ namespace LiveWordXml.Wpf.ViewModels
                     Filter = "Word Documents (*.docx)|*.docx|All files (*.*)|*.*",
                     FilterIndex = 1,
                     RestoreDirectory = true
-                }; if (openFileDialog.ShowDialog() == true)
+                };
+
+                if (openFileDialog.ShowDialog() == true)
                 {
                     await Task.Run(() => _documentService.LoadDocument(openFileDialog.FileName));
 
                     DocumentStatus = $"Document loaded: {System.IO.Path.GetFileName(openFileDialog.FileName)}";
                     StatusMessage = "Document loaded successfully";
                     OnPropertyChanged(nameof(IsDocumentLoaded));
+                    RefreshStructureCommand.NotifyCanExecuteChanged();
 
                     _notificationService.ShowNotification("Document loaded successfully!");
+
+                    // Build document structure
+                    await BuildDocumentStructureAsync();
 
                     // Process current text if any
                     if (!string.IsNullOrEmpty(SelectedText))
@@ -235,6 +296,9 @@ namespace LiveWordXml.Wpf.ViewModels
 
                 _notificationService.ShowNotification("Document refreshed with latest content!");
 
+                // Rebuild document structure
+                await BuildDocumentStructureAsync();
+
                 // Re-process current text to get updated matches
                 if (!string.IsNullOrEmpty(SelectedText))
                 {
@@ -253,6 +317,86 @@ namespace LiveWordXml.Wpf.ViewModels
             {
                 StatusMessage = $"Error refreshing document: {ex.Message}";
                 _notificationService.ShowError($"Error refreshing document: {ex.Message}");
+            }
+        }
+
+        private async Task BuildDocumentStructureAsync()
+        {
+            try
+            {
+                StatusMessage = "Building document structure...";
+
+                var structure = await Task.Run(() => _documentStructureService.BuildDocumentStructure());
+                
+                await _dispatcher.InvokeAsync(() =>
+                {
+                    DocumentStructure = structure;
+                    StatusMessage = "Document structure built successfully";
+                });
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error building document structure: {ex.Message}";
+                _notificationService.ShowError($"Error building document structure: {ex.Message}");
+            }
+        }
+
+        private async Task RefreshDocumentStructureAsync()
+        {
+            if (!_documentService.IsDocumentLoaded)
+            {
+                StatusMessage = "No document loaded";
+                return;
+            }
+
+            await BuildDocumentStructureAsync();
+        }
+
+        private void ExpandAll()
+        {
+            DocumentStructure?.ExpandAll();
+        }
+
+        private void CollapseAll()
+        {
+            DocumentStructure?.CollapseAll();
+        }
+
+        private void HighlightNodesWithText(string searchText)
+        {
+            if (DocumentStructure == null || string.IsNullOrWhiteSpace(searchText))
+            {
+                ClearHighlights();
+                return;
+            }
+
+            var matchingNodes = _documentStructureService.FindNodesWithText(DocumentStructure, searchText);
+            
+            // Clear previous highlights
+            ClearHighlights();
+            
+            // Highlight matching nodes
+            foreach (var node in matchingNodes)
+            {
+                node.IsHighlighted = true;
+                node.ExpandToNode(); // Expand path to highlighted node
+            }
+        }
+
+        private void ClearHighlights()
+        {
+            if (DocumentStructure != null)
+            {
+                ClearHighlightsRecursive(DocumentStructure);
+            }
+        }
+
+        private void ClearHighlightsRecursive(DocumentStructureNode node)
+        {
+            node.IsHighlighted = false;
+            foreach (var child in node.Children)
+            {
+                ClearHighlightsRecursive(child);
             }
         }
 
@@ -340,6 +484,12 @@ namespace LiveWordXml.Wpf.ViewModels
                 SelectedXml = IsFormattedXml
                     ? _documentService.FormatXml(SelectedMatch.XmlContent)
                     : SelectedMatch.XmlContent;
+            }
+            else if (SelectedStructureNode != null)
+            {
+                SelectedXml = IsFormattedXml
+                    ? _documentService.FormatXml(SelectedStructureNode.XmlContent)
+                    : SelectedStructureNode.XmlContent;
             }
         }
 

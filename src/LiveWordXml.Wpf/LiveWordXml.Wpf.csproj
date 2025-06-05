@@ -6,6 +6,28 @@
         <AssemblyTitle>LiveWordXml WPF</AssemblyTitle>
         <AssemblyDescription>Modern real-time Word document XML extractor with WPF UI</AssemblyDescription>
         <AssemblyVersion>2.0.0.0</AssemblyVersion>
+        <ApplicationIcon>Resources\app-icon.ico</ApplicationIcon>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <DebuggerSupport>false</DebuggerSupport>
+        <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
+        <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+        <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+        <UseSystemResourceKeys>true</UseSystemResourceKeys>
+        <PublishReadyToRun>true</PublishReadyToRun>
+        <TieredCompilation>false</TieredCompilation>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <EventSourceSupport>false</EventSourceSupport>
+        <UseNativeHttpHandler>true</UseNativeHttpHandler>
+        <StackTraceSupport>false</StackTraceSupport>
+        <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
+    </PropertyGroup>
+
+    <!-- Enable compression only for self-contained builds -->
+    <PropertyGroup Condition="'$(SelfContained)' == 'true'">
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     </PropertyGroup>
 
     <ItemGroup>

@@ -1,19 +1,20 @@
 using System;
 using Xunit;
-using LiveWordXml.Services;
+using Moq;
+using LiveWordXml.Wpf.Services;
 
 namespace LiveWordXml.Tests.Services
 {
     public class TextMatchingServiceTests
     {
         [Fact]
-        public void Constructor_ValidDocumentPath_ShouldCreateInstance()
+        public void Constructor_ValidDocumentService_ShouldCreateInstance()
         {
             // Arrange
-            string documentPath = "test.docx";
+            var mockDocumentService = new Mock<DocumentService>();
 
             // Act
-            var service = new TextMatchingService(documentPath);
+            var service = new TextMatchingService(mockDocumentService.Object);
 
             // Assert
             Assert.NotNull(service);
@@ -23,8 +24,8 @@ namespace LiveWordXml.Tests.Services
         public void MatchTextToXml_EmptyText_ShouldReturnEmptyList()
         {
             // Arrange
-            string documentPath = "test.docx";
-            var service = new TextMatchingService(documentPath);
+            var mockDocumentService = new Mock<DocumentService>();
+            var service = new TextMatchingService(mockDocumentService.Object);
             string selectedText = "";
 
             // Act
