@@ -322,6 +322,12 @@ namespace LiveWordXml.Wpf.ViewModels
 
         private async Task BuildDocumentStructureAsync()
         {
+            if (!_documentService.IsDocumentLoaded)
+            {
+                StatusMessage = "No document loaded";
+                return;
+            }
+
             try
             {
                 StatusMessage = "Building document structure...";

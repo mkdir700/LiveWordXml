@@ -231,7 +231,7 @@
                         <Button x:Name="ButtonLoadDocument"
                                 Command="{Binding LoadDocumentCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
-                                Width="120"
+                                Width="140"
                                 Margin="0,0,0,8"
                                 Tag="{StaticResource FolderIcon}">
                             <TextBlock Text="Load Document"/>
@@ -240,7 +240,7 @@
                         <Button x:Name="ButtonRefreshDocument"
                                 Command="{Binding RefreshDocumentCommand}"
                                 Style="{StaticResource ActionButtonStyle}"
-                                Width="120"
+                                Width="140"
                                 Margin="0,0,0,0"
                                 IsEnabled="{Binding IsDocumentLoaded}"
                                 Tag="{StaticResource RefreshIcon}">
@@ -267,6 +267,7 @@
 
             <!-- Matches Panel -->
             <Border Grid.Column="0"
+                    x:Name="MatchesPanel"
                     Style="{StaticResource ModernCardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -358,12 +359,14 @@
 
             <!-- Splitter -->
             <GridSplitter Grid.Column="1"
+                          x:Name="Splitter1"
                           Width="8"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Stretch"/>
 
             <!-- Document Structure Panel -->
             <Border Grid.Column="2"
+                    x:Name="StructurePanel"
                     Style="{StaticResource ModernCardStyle}"
                     Visibility="{Binding IsStructureTreeVisible, Converter={x:Static local:BooleanToVisibilityConverter.Default}}">
                 <Grid>
@@ -421,8 +424,7 @@
                                   ItemsSource="{Binding DocumentStructure.Children}"
                                   SelectedItemChanged="DocumentStructureTreeView_SelectedItemChanged"
                                   BorderThickness="0"
-                                  Background="Transparent"
-                                  Visibility="{Binding IsLoadingStructure, Converter={x:Static local:InverseBooleanToVisibilityConverter.Default}}">
+                                  Background="Transparent">
                             <TreeView.Resources>
                                 <HierarchicalDataTemplate DataType="{x:Type models:DocumentStructureNode}"
                                                           ItemsSource="{Binding Children}">
@@ -460,109 +462,7 @@
                             </TreeView.ItemContainerStyle>
                         </TreeView>
 
-                        <!-- Loading Animation -->
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Visibility="{Binding IsLoadingStructure, Converter={x:Static local:BooleanToVisibilityConverter.Default}}">
-                            <!-- Spinning Circle Animation -->
-                            <Ellipse Width="40"
-                                     Height="40"
-                                     Stroke="{StaticResource PrimaryBrush}"
-                                     StrokeThickness="3"
-                                     StrokeDashArray="8,2"
-                                     Margin="0,0,0,16">
-                                <Ellipse.RenderTransform>
-                                    <RotateTransform x:Name="LoadingRotateTransform"/>
-                                </Ellipse.RenderTransform>
-                                <Ellipse.Triggers>
-                                    <EventTrigger RoutedEvent="Ellipse.Loaded">
-                                        <BeginStoryboard>
-                                            <Storyboard RepeatBehavior="Forever">
-                                                <DoubleAnimation Storyboard.TargetName="LoadingRotateTransform"
-                                                                 Storyboard.TargetProperty="Angle"
-                                                                 From="0"
-                                                                 To="360"
-                                                                 Duration="0:0:2"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                </Ellipse.Triggers>
-                            </Ellipse>
 
-                            <!-- Loading Text -->
-                            <TextBlock Text="Loading document structure..."
-                                       HorizontalAlignment="Center"
-                                       Style="{StaticResource BodyTextStyle}"
-                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                       Margin="0,0,0,8"/>
-
-                            <!-- Progress Dots Animation -->
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Center">
-                                <Ellipse x:Name="Dot1"
-                                         Width="6"
-                                         Height="6"
-                                         Fill="{StaticResource PrimaryBrush}"
-                                         Margin="2"
-                                         Opacity="0.3">
-                                    <Ellipse.Triggers>
-                                        <EventTrigger RoutedEvent="Ellipse.Loaded">
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever">
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                     From="0.3"
-                                                                     To="1"
-                                                                     Duration="0:0:0.6"
-                                                                     AutoReverse="True"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Ellipse.Triggers>
-                                </Ellipse>
-                                <Ellipse x:Name="Dot2"
-                                         Width="6"
-                                         Height="6"
-                                         Fill="{StaticResource PrimaryBrush}"
-                                         Margin="2"
-                                         Opacity="0.3">
-                                    <Ellipse.Triggers>
-                                        <EventTrigger RoutedEvent="Ellipse.Loaded">
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever">
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                     From="0.3"
-                                                                     To="1"
-                                                                     Duration="0:0:0.6"
-                                                                     BeginTime="0:0:0.2"
-                                                                     AutoReverse="True"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Ellipse.Triggers>
-                                </Ellipse>
-                                <Ellipse x:Name="Dot3"
-                                         Width="6"
-                                         Height="6"
-                                         Fill="{StaticResource PrimaryBrush}"
-                                         Margin="2"
-                                         Opacity="0.3">
-                                    <Ellipse.Triggers>
-                                        <EventTrigger RoutedEvent="Ellipse.Loaded">
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever">
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                     From="0.3"
-                                                                     To="1"
-                                                                     Duration="0:0:0.6"
-                                                                     BeginTime="0:0:0.4"
-                                                                     AutoReverse="True"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Ellipse.Triggers>
-                                </Ellipse>
-                            </StackPanel>
-                        </StackPanel>
                     </Grid>
 
                     <!-- Node Count -->
@@ -576,12 +476,14 @@
 
             <!-- Splitter -->
             <GridSplitter Grid.Column="3"
+                          x:Name="Splitter2"
                           Width="8"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Stretch"/>
 
             <!-- XML Preview Panel -->
             <Border Grid.Column="4"
+                    x:Name="XmlPreviewPanel"
                     Style="{StaticResource ModernCardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -616,6 +518,13 @@
                                         Style="{StaticResource IconButtonStyle}"
                                         ToolTip="Find and highlight search text in XML">
                                     <TextBlock Text="{StaticResource SearchIcon}"
+                                               Style="{StaticResource IconTextStyle}"/>
+                                </Button>
+                                <Button x:Name="ButtonFullscreen"
+                                        Click="ButtonFullscreen_Click"
+                                        Style="{StaticResource IconButtonStyle}"
+                                        ToolTip="Toggle Fullscreen XML Preview">
+                                    <TextBlock Text="{StaticResource FullScreenIcon}"
                                                Style="{StaticResource IconTextStyle}"/>
                                 </Button>
                             </StackPanel>

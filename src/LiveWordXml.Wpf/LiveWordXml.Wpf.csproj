@@ -18,7 +18,6 @@
         <UseSystemResourceKeys>true</UseSystemResourceKeys>
         <PublishReadyToRun>true</PublishReadyToRun>
         <TieredCompilation>false</TieredCompilation>
-        <InvariantGlobalization>true</InvariantGlobalization>
         <EventSourceSupport>false</EventSourceSupport>
         <UseNativeHttpHandler>true</UseNativeHttpHandler>
         <StackTraceSupport>false</StackTraceSupport>
