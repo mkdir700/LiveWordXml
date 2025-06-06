@@ -133,10 +133,12 @@
                                            Margin="{TemplateBinding Padding}"
                                            VerticalAlignment="Top"
                                            IsHitTestVisible="False"
-                                           FontStyle="Italic"/>
+                                           FontStyle="Italic"
+                                           Visibility="Collapsed"/>
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <!-- Focus state styling -->
                             <Trigger Property="IsFocused"
                                      Value="True">
                                 <Setter TargetName="border"
@@ -145,16 +147,17 @@
                                 <Setter TargetName="border"
                                         Property="BorderThickness"
                                         Value="2"/>
-                                <Setter TargetName="PlaceholderText"
-                                        Property="Visibility"
-                                        Value="Collapsed"/>
                             </Trigger>
+
+                            <!-- Mouse over styling -->
                             <Trigger Property="IsMouseOver"
                                      Value="True">
                                 <Setter TargetName="border"
                                         Property="BorderBrush"
                                         Value="{StaticResource BorderVariantBrush}"/>
                             </Trigger>
+
+                            <!-- Show placeholder only when text is empty AND not focused -->
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="Text"
@@ -166,6 +169,8 @@
                                         Property="Visibility"
                                         Value="Visible"/>
                             </MultiTrigger>
+
+                            <!-- Show placeholder only when text is null AND not focused -->
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="Text"

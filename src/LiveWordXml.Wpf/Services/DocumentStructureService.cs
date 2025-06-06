@@ -324,6 +324,77 @@ namespace LiveWordXml.Wpf.Services
         }
 
         /// <summary>
+        /// 根据XML内容查找匹配的节点
+        /// </summary>
+        /// <param name="rootNode">根节点</param>
+        /// <param name="xmlContent">要查找的XML内容</param>
+        /// <returns>匹配的节点，如果未找到则返回null</returns>
+        public DocumentStructureNode? FindNodeByXmlContent(DocumentStructureNode rootNode, string xmlContent)
+        {
+            if (rootNode == null || string.IsNullOrWhiteSpace(xmlContent))
+                return null;
+
+            return FindNodeByXmlContentRecursive(rootNode, xmlContent.Trim());
+        }
+
+        /// <summary>
+        /// 递归查找XML内容匹配的节点
+        /// </summary>
+        /// <param name="node">当前节点</param>
+        /// <param name="xmlContent">XML内容</param>
+        /// <returns>匹配的节点</returns>
+        private DocumentStructureNode? FindNodeByXmlContentRecursive(DocumentStructureNode node, string xmlContent)
+        {
+            // 精确匹配XML内容
+            if (!string.IsNullOrEmpty(node.XmlContent) && 
+                NormalizeXml(node.XmlContent).Equals(NormalizeXml(xmlContent), StringComparison.OrdinalIgnoreCase))
+            {
+                return node;
+            }
+
+            // 检查是否包含该XML内容（处理嵌套情况）
+            if (!string.IsNullOrEmpty(node.XmlContent) && 
+                NormalizeXml(node.XmlContent).Contains(NormalizeXml(xmlContent), StringComparison.OrdinalIgnoreCase))
+            {
+                // 首先尝试在子节点中找到更精确的匹配
+                foreach (var child in node.Children)
+                {
+                    var childResult = FindNodeByXmlContentRecursive(child, xmlContent);
+                    if (childResult != null)
+                        return childResult;
+                }
+                
+                // 如果子节点中没有找到更精确的匹配，返回当前节点
+                return node;
+            }
+
+            // 继续在子节点中搜索
+            foreach (var child in node.Children)
+            {
+                var result = FindNodeByXmlContentRecursive(child, xmlContent);
+                if (result != null)
+                    return result;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 标准化XML内容，移除空白字符以便比较
+        /// </summary>
+        /// <param name="xml">XML内容</param>
+        /// <returns>标准化后的XML</returns>
+        private string NormalizeXml(string xml)
+        {
+            if (string.IsNullOrEmpty(xml))
+                return string.Empty;
+
+            // 移除多余的空白字符和换行符
+            return xml.Replace("\r\n", "").Replace("\n", "").Replace("\r", "")
+                     .Replace("  ", " ").Trim();
+        }
+
+        /// <summary>
         /// 获取节点统计信息
         /// </summary>
         /// <param name="rootNode">根节点</param>

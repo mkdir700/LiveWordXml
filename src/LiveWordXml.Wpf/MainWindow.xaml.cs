@@ -21,6 +21,9 @@ namespace LiveWordXml.Wpf
             {
                 XmlPreviewEditor.ScrollToSearchText();
             };
+
+            // Subscribe to scroll to structure node event
+            viewModel.OnScrollToStructureNodeRequested += ScrollToStructureNode;
         }
 
         /// <summary>
@@ -34,6 +37,75 @@ namespace LiveWordXml.Wpf
             {
                 ViewModel.SelectedStructureNode = selectedNode;
             }
+        }
+
+        /// <summary>
+        /// 滚动到指定的结构节点
+        /// </summary>
+        /// <param name="targetNode">目标节点</param>
+        private void ScrollToStructureNode(DocumentStructureNode targetNode)
+        {
+            if (targetNode == null)
+                return;
+
+            // 延迟执行以确保TreeView已经更新了展开状态
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                var treeViewItem = FindTreeViewItem(DocumentStructureTreeView, targetNode);
+                if (treeViewItem != null)
+                {
+                    treeViewItem.BringIntoView();
+                    treeViewItem.Focus();
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        /// <summary>
+        /// 在TreeView中查找对应的TreeViewItem
+        /// </summary>
+        /// <param name="treeView">TreeView控件</param>
+        /// <param name="targetNode">目标节点</param>
+        /// <returns>对应的TreeViewItem，如果未找到则返回null</returns>
+        private TreeViewItem? FindTreeViewItem(TreeView treeView, DocumentStructureNode targetNode)
+        {
+            if (treeView.ItemContainerGenerator.Status != System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
+                return null;
+
+            return FindTreeViewItemRecursive(treeView, targetNode);
+        }
+
+        /// <summary>
+        /// 递归查找TreeViewItem
+        /// </summary>
+        /// <param name="parent">父控件</param>
+        /// <param name="targetNode">目标节点</param>
+        /// <returns>对应的TreeViewItem</returns>
+        private TreeViewItem? FindTreeViewItemRecursive(ItemsControl parent, DocumentStructureNode targetNode)
+        {
+            if (parent == null)
+                return null;
+
+            foreach (var item in parent.Items)
+            {
+                var container = parent.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
+                if (container == null)
+                    continue;
+
+                if (item == targetNode)
+                {
+                    return container;
+                }
+
+                // 如果容器是展开的，递归搜索子项
+                if (container.IsExpanded)
+                {
+                    var childResult = FindTreeViewItemRecursive(container, targetNode);
+                    if (childResult != null)
+                        return childResult;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

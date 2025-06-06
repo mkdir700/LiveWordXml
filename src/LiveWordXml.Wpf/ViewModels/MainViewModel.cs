@@ -123,7 +123,19 @@ namespace LiveWordXml.Wpf.ViewModels
                     if (value != null)
                     {
                         _currentMatchIndex = MatchedElements.IndexOf(value);
+                        
+                        // 清除结构节点选择，以确保显示匹配项的XML内容
+                        if (SelectedStructureNode != null)
+                        {
+                            ClearStructureSelection(DocumentStructure);
+                            SelectedStructureNode = null;
+                        }
+                        
                         UpdateSelectedXml();
+                        
+                        // 定位到对应的文档结构节点（但不设置为选中状态）
+                        NavigateToStructureNode(value);
+                        
                         OnPropertyChanged(nameof(CurrentMatchInfo));
                         PreviousCommand.NotifyCanExecuteChanged();
                         NextCommand.NotifyCanExecuteChanged();
@@ -156,13 +168,9 @@ namespace LiveWordXml.Wpf.ViewModels
             {
                 if (SetProperty(ref _selectedStructureNode, value))
                 {
-                    if (value != null)
-                    {
-                        // 当选择结构树节点时，显示对应的XML内容
-                        SelectedXml = IsFormattedXml
-                            ? _documentService.FormatXml(value.XmlContent)
-                            : value.XmlContent;
-                    }
+                    // 当用户手动选择结构节点时，总是更新XML内容
+                    // 这样用户可以在Document Structure中自由导航
+                    UpdateSelectedXml();
                 }
             }
         }
@@ -175,6 +183,9 @@ namespace LiveWordXml.Wpf.ViewModels
 
         // Event for requesting scroll to search text
         public event Action OnScrollToSearchRequested;
+        
+        // Event for requesting scroll to selected structure node
+        public event Action<DocumentStructureNode> OnScrollToStructureNodeRequested;
         public ObservableCollection<MatchedElement> MatchedElements { get; }
 
         public bool IsDocumentLoaded => _documentService.IsDocumentLoaded;
@@ -485,17 +496,30 @@ namespace LiveWordXml.Wpf.ViewModels
 
         private void UpdateSelectedXml()
         {
-            if (SelectedMatch != null)
+            string xmlContent = null;
+
+            // 优先显示当前选中的结构节点的XML内容
+            // 这样用户可以在Document Structure中自由导航查看XML
+            if (SelectedStructureNode != null)
             {
-                SelectedXml = IsFormattedXml
-                    ? _documentService.FormatXml(SelectedMatch.XmlContent)
-                    : SelectedMatch.XmlContent;
+                xmlContent = SelectedStructureNode.XmlContent;
             }
-            else if (SelectedStructureNode != null)
+            // 如果没有选中的结构节点，则显示匹配元素的XML内容
+            else if (SelectedMatch != null)
+            {
+                xmlContent = SelectedMatch.XmlContent;
+            }
+
+            // 根据格式化选项设置XML内容
+            if (!string.IsNullOrEmpty(xmlContent))
             {
                 SelectedXml = IsFormattedXml
-                    ? _documentService.FormatXml(SelectedStructureNode.XmlContent)
-                    : SelectedStructureNode.XmlContent;
+                    ? _documentService.FormatXml(xmlContent)
+                    : xmlContent;
+            }
+            else
+            {
+                SelectedXml = string.Empty;
             }
         }
 
@@ -575,6 +599,110 @@ namespace LiveWordXml.Wpf.ViewModels
             // Create a short preview of the XML content
             var preview = xml.Replace("\r\n", " ").Replace("\n", " ").Trim();
             return preview.Length > 60 ? preview.Substring(0, 60) + "..." : preview;
+        }
+
+        /// <summary>
+        /// Navigate to the corresponding structure node when a match is selected
+        /// </summary>
+        /// <param name="matchedElement">The selected matched element</param>
+        private void NavigateToStructureNode(MatchedElement matchedElement)
+        {
+            if (matchedElement == null || DocumentStructure == null)
+                return;
+
+            try
+            {
+                // First try to find exact match by XML content
+                var exactNode = _documentStructureService.FindNodeByXmlContent(DocumentStructure, matchedElement.XmlContent);
+                if (exactNode != null)
+                {
+                    ExpandAndHighlightNode(exactNode);
+                    return;
+                }
+
+                // Fallback: find nodes containing the text
+                var matchingNodes = _documentStructureService.FindNodesWithText(DocumentStructure, matchedElement.Preview);
+                if (matchingNodes.Any())
+                {
+                    var bestMatch = matchingNodes
+                        .Where(node => !string.IsNullOrEmpty(node.XmlContent))
+                        .OrderBy(node => Math.Abs(node.XmlContent.Length - matchedElement.XmlContent.Length))
+                        .FirstOrDefault();
+
+                    if (bestMatch != null)
+                    {
+                        ExpandAndHighlightNode(bestMatch);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error navigating to structure node: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Select and expand to the specified node in the document structure
+        /// </summary>
+        /// <param name="targetNode">The node to select and expand to</param>
+        private void SelectAndExpandToNode(DocumentStructureNode targetNode)
+        {
+            if (targetNode == null)
+                return;
+
+            // Clear previous selection
+            ClearStructureSelection(DocumentStructure);
+
+            // Expand path to the target node
+            targetNode.ExpandToNode();
+
+            // Select the target node
+            targetNode.IsSelected = true;
+
+            // Set as selected structure node
+            SelectedStructureNode = targetNode;
+
+            // Request scroll to the selected node
+            OnScrollToStructureNodeRequested?.Invoke(targetNode);
+        }
+
+        /// <summary>
+        /// Expand and highlight the specified node without selecting it
+        /// Used when navigating from XMLmatches to show corresponding structure node
+        /// </summary>
+        /// <param name="targetNode">The node to expand and highlight</param>
+        private void ExpandAndHighlightNode(DocumentStructureNode targetNode)
+        {
+            if (targetNode == null)
+                return;
+
+            // Clear previous highlights
+            ClearHighlights();
+
+            // Expand path to the target node
+            targetNode.ExpandToNode();
+
+            // Highlight the target node (but don't select it)
+            targetNode.IsHighlighted = true;
+
+            // Request scroll to the highlighted node
+            OnScrollToStructureNodeRequested?.Invoke(targetNode);
+        }
+
+        /// <summary>
+        /// Clear all selections in the structure tree
+        /// </summary>
+        /// <param name="node">Starting node for clearing selections</param>
+        private void ClearStructureSelection(DocumentStructureNode node)
+        {
+            if (node == null)
+                return;
+
+            node.IsSelected = false;
+            foreach (var child in node.Children)
+            {
+                ClearStructureSelection(child);
+            }
         }
 
         public void Dispose()
