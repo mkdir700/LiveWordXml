@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug LiveWordXml.Wpf",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build LiveWordXml.Wpf",
+            "program": "${workspaceFolder}/src/LiveWordXml.Wpf/bin/Debug/net8.0-windows/win-x64/LiveWordXml.Wpf.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole",
+            "justMyCode": true,
+            "enableStepFiltering": true,
+            "suppressJITOptimizations": true
+        },
+        {
+            "name": "Attach to Process",
+            "type": "coreclr",
+            "request": "attach"
+        }
+    ]
+} 

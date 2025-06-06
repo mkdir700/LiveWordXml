@@ -1,0 +1,15 @@
+{
+    "dotnet.defaultSolution": "LiveWordXml.sln",
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    },
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.enableEditorConfigSupport": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "files.encoding": "utf8",
+    "files.eol": "\n"
+} 
