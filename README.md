@@ -10,6 +10,12 @@ Real-time Word document XML extractor. Select text in any application and instan
 - 🖥️ **System tray** - Runs quietly in background
 - ⚡ **Fast performance** - Optimized for quick response
 
+## Screenshot
+
+![LiveWordXml Application](assets/home.png)
+
+_LiveWordXml main interface showing real-time XML extraction_
+
 ## Usage
 
 1. Load a Word document (.docx)
