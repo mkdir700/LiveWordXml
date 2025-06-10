@@ -1,0 +1,87 @@
+# Continuous Integration Workflow
+# 持续集成工作流
+name: CI
+
+on:
+  # Trigger on push to any branch
+  # 推送到任何分支时触发
+  push:
+    branches: ["*"]
+  # Trigger on pull request
+  # 创建 pull request 时触发
+  pull_request:
+    branches: [main, master]
+
+env:
+  # .NET version to use
+  # 使用的 .NET 版本
+  DOTNET_VERSION: "8.0.x"
+  # Build configuration
+  # 构建配置
+  BUILD_CONFIGURATION: "Release"
+
+jobs:
+  # Build and test job
+  # 构建和测试作业
+  build-test:
+    name: Build and Test
+    runs-on: windows-latest
+
+    steps:
+      # Checkout source code
+      # 检出源代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Setup .NET SDK
+      # 设置 .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Cache NuGet packages for faster builds
+      # 缓存 NuGet 包以加快构建速度
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Restore dependencies
+      # 恢复依赖项
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Build the solution
+      # 构建解决方案
+      - name: Build solution
+        run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      # Run tests with coverage
+      # 运行测试并生成覆盖率报告
+      - name: Run tests
+        run: dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory TestResults
+
+      # Upload test results
+      # 上传测试结果
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ github.run_number }}
+          path: TestResults/**/*
+          retention-days: 30
+
+      # Publish test results summary
+      # 发布测试结果摘要
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: TestResults/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false

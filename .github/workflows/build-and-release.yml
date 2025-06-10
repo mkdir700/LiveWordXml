@@ -1,0 +1,220 @@
+# GitHub Workflow for .NET Application Build and Release
+# GitHub Workflow 用于 .NET 应用程序的构建和发布
+name: Build and Release
+
+on:
+  # Trigger on push to main branch
+  # 当推送到 main 分支时触发
+  push:
+    branches: [ main, master ]
+  # Trigger on pull request to main branch  
+  # 当创建针对 main 分支的 pull request 时触发
+  pull_request:
+    branches: [ main, master ]
+  # Trigger on tag creation for releases
+  # 当创建标签时触发发布
+  push:
+    tags:
+      - 'v*'
+
+env:
+  # .NET version to use
+  # 使用的 .NET 版本
+  DOTNET_VERSION: '8.0.x'
+  # Build configuration
+  # 构建配置
+  BUILD_CONFIGURATION: 'Release'
+  # Project path
+  # 项目路径
+  PROJECT_PATH: 'src/LiveWordXml.Wpf/LiveWordXml.Wpf.csproj'
+  # Test project path
+  # 测试项目路径
+  TEST_PROJECT_PATH: 'tests/LiveWordXml.Tests/LiveWordXml.Tests.csproj'
+
+jobs:
+  # Build and test job
+  # 构建和测试作业
+  build-and-test:
+    name: Build and Test
+    runs-on: windows-latest
+    
+    steps:
+    # Checkout source code
+    # 检出源代码
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Setup .NET SDK
+    # 设置 .NET SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    # Cache NuGet packages
+    # 缓存 NuGet 包
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    # Restore dependencies
+    # 恢复依赖项
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    # Build the solution
+    # 构建解决方案
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+      
+    # Run tests
+    # 运行测试
+    - name: Run tests
+      run: dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      
+    # Upload test results
+    # 上传测试结果
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: '**/TestResults/**/*'
+        
+    # Upload code coverage
+    # 上传代码覆盖率
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: '**/coverage.cobertura.xml'
+        fail_ci_if_error: false
+
+  # Publish job (only on tags)
+  # 发布作业（仅在标签时）
+  publish:
+    name: Publish Application
+    runs-on: windows-latest
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    strategy:
+      matrix:
+        # Build for multiple platforms
+        # 为多个平台构建
+        runtime: [win-x64, win-x86, win-arm64]
+        
+    steps:
+    # Checkout source code
+    # 检出源代码
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Setup .NET SDK
+    # 设置 .NET SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    # Restore dependencies
+    # 恢复依赖项
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    # Publish application
+    # 发布应用程序
+    - name: Publish application
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          --configuration ${{ env.BUILD_CONFIGURATION }} `
+          --runtime ${{ matrix.runtime }} `
+          --self-contained true `
+          --output ./publish/${{ matrix.runtime }} `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:PublishReadyToRun=true `
+          -p:EnableCompressionInSingleFile=true
+          
+    # Create archive
+    # 创建压缩包
+    - name: Create archive
+      run: |
+        $archiveName = "LiveWordXml-${{ github.ref_name }}-${{ matrix.runtime }}.zip"
+        Compress-Archive -Path "./publish/${{ matrix.runtime }}/*" -DestinationPath $archiveName
+        echo "ARCHIVE_NAME=$archiveName" >> $env:GITHUB_ENV
+        
+    # Upload build artifacts
+    # 上传构建产物
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: LiveWordXml-${{ matrix.runtime }}
+        path: ${{ env.ARCHIVE_NAME }}
+        
+  # Create GitHub release
+  # 创建 GitHub 发布
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    # Download all artifacts
+    # 下载所有产物
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+        
+    # Create GitHub release
+    # 创建 GitHub 发布
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## LiveWordXml Release ${{ github.ref_name }}
+          
+          ### What's New / 新功能
+          - Automated build and release via GitHub Actions
+          - 通过 GitHub Actions 自动构建和发布
+          
+          ### Downloads / 下载
+          - **Windows x64**: For 64-bit Windows systems / 适用于 64 位 Windows 系统
+          - **Windows x86**: For 32-bit Windows systems / 适用于 32 位 Windows 系统  
+          - **Windows ARM64**: For ARM64 Windows systems / 适用于 ARM64 Windows 系统
+          
+          ### Installation / 安装
+          1. Download the appropriate version for your system / 下载适合您系统的版本
+          2. Extract the ZIP file / 解压 ZIP 文件
+          3. Run LiveWordXml.Wpf.exe / 运行 LiveWordXml.Wpf.exe
+          
+        files: ./artifacts/**/*.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        
+  # Cleanup job
+  # 清理作业
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [build-and-test, publish, release]
+    if: always()
+    
+    steps:
+    - name: Delete old artifacts
+      uses: geekyeggo/delete-artifact@v5
+      with:
+        name: |
+          LiveWordXml-win-x64
+          LiveWordXml-win-x86
+          LiveWordXml-win-arm64
+        failOnError: false 
