@@ -1,27 +1,41 @@
 <UserControl x:Class="LiveWordXml.Wpf.Views.XmlEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    
+             mc:Ignorable="d"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+
     <UserControl.Resources>
         <!-- Modern Editor Style -->
-        <Style x:Key="ModernEditorStyle" TargetType="avalonedit:TextEditor">
-            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Courier New"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="ShowLineNumbers" Value="True"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="WordWrap" Value="False"/>
-            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="Background" Value="#FAFBFC"/>
-            <Setter Property="Foreground" Value="#24292F"/>
-            <Setter Property="LineNumbersForeground" Value="#656D76"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+        <Style x:Key="ModernEditorStyle"
+               TargetType="avalonedit:TextEditor">
+            <Setter Property="FontFamily"
+                    Value="JetBrains Mono, Consolas, Courier New"/>
+            <Setter Property="FontSize"
+                    Value="13"/>
+            <Setter Property="ShowLineNumbers"
+                    Value="True"/>
+            <Setter Property="IsReadOnly"
+                    Value="True"/>
+            <Setter Property="WordWrap"
+                    Value="False"/>
+            <Setter Property="HorizontalScrollBarVisibility"
+                    Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility"
+                    Value="Auto"/>
+            <Setter Property="Background"
+                    Value="#FAFBFC"/>
+            <Setter Property="Foreground"
+                    Value="#24292F"/>
+            <Setter Property="LineNumbersForeground"
+                    Value="#656D76"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="BorderBrush"
+                    Value="#D0D7DE"/>
         </Style>
     </UserControl.Resources>
 
@@ -49,30 +63,32 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- File Type Indicator -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <Border Background="#FFF3CD" 
-                                BorderBrush="#FFEAA7" 
-                                BorderThickness="1" 
-                                CornerRadius="3" 
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal">
+                        <Border Background="#FFF3CD"
+                                BorderBrush="#FFEAA7"
+                                BorderThickness="1"
+                                CornerRadius="3"
                                 Padding="6,2">
-                            <TextBlock Text="XML" 
-                                       FontSize="10" 
-                                       FontWeight="SemiBold" 
+                            <TextBlock Text="XML"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
                                        Foreground="#856404"/>
                         </Border>
-                        <TextBlock Text="只读模式" 
+                        <TextBlock Text="Readonly"
                                    Style="{StaticResource CaptionTextStyle}"
                                    VerticalAlignment="Center"
                                    Margin="8,0,0,0"/>
                     </StackPanel>
 
                     <!-- Editor Info -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <TextBlock Text="UTF-8" 
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal">
+                        <TextBlock Text="UTF-8"
                                    Style="{StaticResource CaptionTextStyle}"
                                    VerticalAlignment="Center"
                                    Margin="0,0,12,0"/>
-                        <TextBlock Text="LF" 
+                        <TextBlock Text="LF"
                                    Style="{StaticResource CaptionTextStyle}"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
@@ -103,13 +119,13 @@
                     Grid.Row="1"
                     Background="#80FFFFFF"
                     Visibility="Collapsed">
-                <StackPanel HorizontalAlignment="Center" 
+                <StackPanel HorizontalAlignment="Center"
                             VerticalAlignment="Center">
-                    <ProgressBar IsIndeterminate="True" 
-                                 Width="100" 
+                    <ProgressBar IsIndeterminate="True"
+                                 Width="100"
                                  Height="4"
                                  Style="{DynamicResource {x:Type ProgressBar}}"/>
-                    <TextBlock Text="正在加载 XML..." 
+                    <TextBlock Text="正在加载 XML..."
                                Style="{StaticResource BodyTextStyle}"
                                HorizontalAlignment="Center"
                                Margin="0,12,0,0"/>
@@ -121,18 +137,18 @@
                     Grid.Row="1"
                     Background="Transparent"
                     Visibility="Collapsed">
-                <StackPanel HorizontalAlignment="Center" 
+                <StackPanel HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Opacity="0.6">
-                    <TextBlock Text="📄" 
-                               FontSize="48" 
+                    <TextBlock Text="📄"
+                               FontSize="48"
                                HorizontalAlignment="Center"
                                Margin="0,0,0,16"/>
-                    <TextBlock Text="暂无 XML 内容" 
+                    <TextBlock Text="暂无 XML 内容"
                                Style="{StaticResource SubheaderTextStyle}"
                                HorizontalAlignment="Center"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="请选择一个匹配项或加载文档以查看 XML 内容" 
+                    <TextBlock Text="请选择一个匹配项或加载文档以查看 XML 内容"
                                Style="{StaticResource BodyTextStyle}"
                                HorizontalAlignment="Center"
                                Foreground="{StaticResource TextTertiaryBrush}"
