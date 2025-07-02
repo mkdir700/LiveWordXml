@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
-using LiveWordXml.Wpf.ViewModels;
 using LiveWordXml.Wpf.Models;
+using LiveWordXml.Wpf.ViewModels;
 
 namespace LiveWordXml.Wpf
 {
@@ -27,11 +27,24 @@ namespace LiveWordXml.Wpf
         }
 
         /// <summary>
-        /// 处理文档结构树视图的选择变化事件
+        /// 处理多列导航器的节点选择事件
+        /// </summary>
+        /// <param name="sender">事件发送者</param>
+        /// <param name="selectedNode">选中的节点</param>
+        private void OnNavigatorNodeSelected(object sender, DocumentStructureNode selectedNode)
+        {
+            ViewModel.SelectedStructureNode = selectedNode;
+        }
+
+        /// <summary>
+        /// 处理文档结构树视图的选择变化事件（保留用于兼容性）
         /// </summary>
         /// <param name="sender">事件发送者</param>
         /// <param name="e">事件参数</param>
-        private void DocumentStructureTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void DocumentStructureTreeView_SelectedItemChanged(
+            object sender,
+            RoutedPropertyChangedEventArgs<object> e
+        )
         {
             if (e.NewValue is DocumentStructureNode selectedNode)
             {
@@ -48,64 +61,8 @@ namespace LiveWordXml.Wpf
             if (targetNode == null)
                 return;
 
-            // 延迟执行以确保TreeView已经更新了展开状态
-            Dispatcher.BeginInvoke(new System.Action(() =>
-            {
-                var treeViewItem = FindTreeViewItem(DocumentStructureTreeView, targetNode);
-                if (treeViewItem != null)
-                {
-                    treeViewItem.BringIntoView();
-                    treeViewItem.Focus();
-                }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
-        }
-
-        /// <summary>
-        /// 在TreeView中查找对应的TreeViewItem
-        /// </summary>
-        /// <param name="treeView">TreeView控件</param>
-        /// <param name="targetNode">目标节点</param>
-        /// <returns>对应的TreeViewItem，如果未找到则返回null</returns>
-        private TreeViewItem? FindTreeViewItem(TreeView treeView, DocumentStructureNode targetNode)
-        {
-            if (treeView.ItemContainerGenerator.Status != System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
-                return null;
-
-            return FindTreeViewItemRecursive(treeView, targetNode);
-        }
-
-        /// <summary>
-        /// 递归查找TreeViewItem
-        /// </summary>
-        /// <param name="parent">父控件</param>
-        /// <param name="targetNode">目标节点</param>
-        /// <returns>对应的TreeViewItem</returns>
-        private TreeViewItem? FindTreeViewItemRecursive(ItemsControl parent, DocumentStructureNode targetNode)
-        {
-            if (parent == null)
-                return null;
-
-            foreach (var item in parent.Items)
-            {
-                var container = parent.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
-                if (container == null)
-                    continue;
-
-                if (item == targetNode)
-                {
-                    return container;
-                }
-
-                // 如果容器是展开的，递归搜索子项
-                if (container.IsExpanded)
-                {
-                    var childResult = FindTreeViewItemRecursive(container, targetNode);
-                    if (childResult != null)
-                        return childResult;
-                }
-            }
-
-            return null;
+            // 使用多列导航器导航到指定节点
+            DocumentNavigator.NavigateToNode(targetNode);
         }
 
         /// <summary>
@@ -120,29 +77,27 @@ namespace LiveWordXml.Wpf
             if (_isXmlPreviewFullscreen)
             {
                 // 进入全屏模式
-                MatchesPanel.Visibility = Visibility.Collapsed;
-                Splitter1.Visibility = Visibility.Collapsed;
-                StructurePanel.Visibility = Visibility.Collapsed;
-                Splitter2.Visibility = Visibility.Collapsed;
+                NavigationPanel.Visibility = Visibility.Collapsed;
+                MainSplitter.Visibility = Visibility.Collapsed;
 
                 // XML Preview 占据所有列
                 XmlPreviewPanel.SetValue(Grid.ColumnProperty, 0);
-                XmlPreviewPanel.SetValue(Grid.ColumnSpanProperty, 5);
+                XmlPreviewPanel.SetValue(Grid.ColumnSpanProperty, 3);
 
                 // 更新按钮图标
                 ButtonFullscreen.ToolTip = "Exit Fullscreen";
-                ((TextBlock)ButtonFullscreen.Content).Text = (string)FindResource("ExitFullScreenIcon");
+                ((TextBlock)ButtonFullscreen.Content).Text = (string)FindResource(
+                    "ExitFullScreenIcon"
+                );
             }
             else
             {
                 // 退出全屏模式
-                MatchesPanel.Visibility = Visibility.Visible;
-                Splitter1.Visibility = Visibility.Visible;
-                StructurePanel.Visibility = ViewModel.IsStructureTreeVisible ? Visibility.Visible : Visibility.Collapsed;
-                Splitter2.Visibility = Visibility.Visible;
+                NavigationPanel.Visibility = Visibility.Visible;
+                MainSplitter.Visibility = Visibility.Visible;
 
                 // 恢复 XML Preview 原始位置
-                XmlPreviewPanel.SetValue(Grid.ColumnProperty, 4);
+                XmlPreviewPanel.SetValue(Grid.ColumnProperty, 2);
                 XmlPreviewPanel.SetValue(Grid.ColumnSpanProperty, 1);
 
                 // 更新按钮图标
