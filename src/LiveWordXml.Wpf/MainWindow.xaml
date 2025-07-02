@@ -7,8 +7,8 @@
         Title="LiveWordXml - Modern XML Extractor"
         Height="700"
         Width="1200"
-        MinHeight="700"
-        MinWidth="1200"
+        MinHeight="600"
+        MinWidth="1000"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         Icon="{StaticResource AppIconDrawing}"
@@ -25,7 +25,7 @@
             <Setter Property="BorderThickness"
                     Value="0,0,0,1"/>
             <Setter Property="Padding"
-                    Value="24,16"/>
+                    Value="16,12"/>
         </Style>
 
         <!-- Stats Card Style -->
@@ -60,20 +60,20 @@
             <Setter Property="Background"
                     Value="{StaticResource SurfaceVariantBrush}"/>
             <Setter Property="Margin"
-                    Value="-20,-20,-20,16"/>
+                    Value="-16,-16,-16,12"/>
         </Style>
 
         <!-- Panel Header Text Style -->
         <Style x:Key="PanelHeaderTextStyle"
                TargetType="TextBlock">
             <Setter Property="FontSize"
-                    Value="16"/>
+                    Value="14"/>
             <Setter Property="FontWeight"
                     Value="SemiBold"/>
             <Setter Property="Foreground"
                     Value="{StaticResource TextPrimaryBrush}"/>
             <Setter Property="Margin"
-                    Value="20,12"/>
+                    Value="16,10"/>
         </Style>
 
         <!-- Action Button Style -->
@@ -93,9 +93,21 @@
                TargetType="Button"
                BasedOn="{StaticResource ModernButtonStyle}">
             <Setter Property="Padding"
-                    Value="16,8"/>
+                    Value="12,6"/>
             <Setter Property="FontSize"
-                    Value="14"/>
+                    Value="13"/>
+            <Setter Property="Margin"
+                    Value="4,0"/>
+        </Style>
+
+        <!-- Compact Button Style -->
+        <Style x:Key="CompactButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Padding"
+                    Value="8,4"/>
+            <Setter Property="FontSize"
+                    Value="12"/>
             <Setter Property="Margin"
                     Value="4,0"/>
         </Style>
@@ -209,7 +221,7 @@
                 <TextBlock Grid.Row="0"
                            Text="Text Input"
                            Style="{StaticResource SubheaderTextStyle}"
-                           Margin="0,0,0,12"/>
+                           Margin="0,0,0,8"/>
 
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
@@ -220,32 +232,31 @@
                     <TextBox Grid.Column="0"
                              x:Name="TextBoxSelectedText"
                              Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}"
-                             Height="80"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             Margin="0,0,16,0"
-                             VerticalContentAlignment="Top"
+                             Height="36"
+                             TextWrapping="NoWrap"
+                             AcceptsReturn="False"
+                             Margin="0,0,12,0"
+                             VerticalContentAlignment="Center"
                              Style="{StaticResource PlaceholderTextBoxStyle}"
                              Tag="Enter keywords to search"/>
 
                     <StackPanel Grid.Column="1"
-                                Orientation="Vertical"
-                                VerticalAlignment="Top"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
                                 Margin="0,0,0,0">
                         <Button x:Name="ButtonLoadDocument"
                                 Command="{Binding LoadDocumentCommand}"
                                 Style="{StaticResource PrimaryActionButtonStyle}"
-                                Width="140"
-                                Margin="0,0,0,8"
+                                Width="110"
+                                Margin="0,0,8,0"
                                 Tag="{StaticResource FolderIcon}">
                             <TextBlock Text="Load Document"/>
                         </Button>
 
                         <Button x:Name="ButtonRefreshDocument"
                                 Command="{Binding RefreshDocumentCommand}"
-                                Style="{StaticResource ActionButtonStyle}"
-                                Width="140"
+                                Style="{StaticResource CompactButtonStyle}"
+                                Width="80"
                                 Margin="0,0,0,0"
                                 IsEnabled="{Binding IsDocumentLoaded}"
                                 Tag="{StaticResource RefreshIcon}">
@@ -258,13 +269,13 @@
 
         <!-- Main Content Area -->
         <Grid Grid.Row="2"
-              Margin="16">
+              Margin="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"
-                                  MinWidth="400"/>
+                                  MinWidth="350"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="2*"
-                                  MinWidth="300"/>
+                                  MinWidth="250"/>
             </Grid.ColumnDefinitions>
 
             <!-- Multi-Column Navigation Panel -->
@@ -280,7 +291,7 @@
                     <!-- Panel Header -->
                     <Grid Grid.Row="0"
                           Style="{StaticResource PanelHeaderStyle}">
-                        <Grid Margin="20,12">
+                        <Grid Margin="16,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -343,13 +354,12 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Panel Header -->
                     <Grid Grid.Row="0"
                           Style="{StaticResource PanelHeaderStyle}">
-                        <Grid Margin="20,12">
+                        <Grid Margin="16,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -366,12 +376,26 @@
                                 <CheckBox x:Name="CheckBoxFormatted"
                                           Content="Formatted"
                                           IsChecked="{Binding IsFormattedXml}"
-                                          Margin="0,0,12,0"/>
+                                          Margin="0,0,8,0"/>
                                 <Button x:Name="ButtonScrollToSearch"
                                         Command="{Binding ScrollToSearchCommand}"
                                         Style="{StaticResource IconButtonStyle}"
                                         ToolTip="Find and highlight search text in XML">
                                     <TextBlock Text="{StaticResource SearchIcon}"
+                                               Style="{StaticResource IconTextStyle}"/>
+                                </Button>
+                                <Button x:Name="ButtonCopyXml"
+                                        Command="{Binding CopyXmlCommand}"
+                                        Style="{StaticResource IconButtonStyle}"
+                                        ToolTip="Copy XML to clipboard">
+                                    <TextBlock Text="{StaticResource CopyIcon}"
+                                               Style="{StaticResource IconTextStyle}"/>
+                                </Button>
+                                <Button x:Name="ButtonSaveXml"
+                                        Command="{Binding SaveXmlCommand}"
+                                        Style="{StaticResource IconButtonStyle}"
+                                        ToolTip="Save XML to file">
+                                    <TextBlock Text="{StaticResource SaveIcon}"
                                                Style="{StaticResource IconTextStyle}"/>
                                 </Button>
                                 <Button x:Name="ButtonFullscreen"
@@ -394,8 +418,8 @@
                             Visibility="{Binding SelectedStructureNode, Converter={StaticResource NullToVisibilityConverter}}">
                         <Expander Header="📋 Node Details"
                                   IsExpanded="True"
-                                  Margin="8">
-                            <Grid Margin="8,8,8,0">
+                                  Margin="6">
+                            <Grid Margin="6,6,6,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -412,12 +436,12 @@
                                            Grid.Column="0"
                                            Text="Type:"
                                            FontWeight="SemiBold"
-                                           Margin="0,0,8,4"
+                                           Margin="0,0,6,3"
                                            VerticalAlignment="Top"/>
                                 <TextBlock Grid.Row="0"
                                            Grid.Column="1"
                                            Text="{Binding SelectedStructureNode.NodeType}"
-                                           Margin="0,0,0,4"
+                                           Margin="0,0,0,3"
                                            TextWrapping="Wrap"/>
 
                                 <!-- XPath -->
@@ -425,12 +449,12 @@
                                            Grid.Column="0"
                                            Text="XPath:"
                                            FontWeight="SemiBold"
-                                           Margin="0,0,8,4"
+                                           Margin="0,0,6,3"
                                            VerticalAlignment="Top"/>
                                 <TextBlock Grid.Row="1"
                                            Grid.Column="1"
                                            Text="{Binding SelectedStructureNode.XPath}"
-                                           Margin="0,0,0,4"
+                                           Margin="0,0,0,3"
                                            TextWrapping="Wrap"
                                            FontFamily="Consolas"/>
 
@@ -439,12 +463,12 @@
                                            Grid.Column="0"
                                            Text="Preview:"
                                            FontWeight="SemiBold"
-                                           Margin="0,0,8,4"
+                                           Margin="0,0,6,3"
                                            VerticalAlignment="Top"/>
                                 <TextBlock Grid.Row="2"
                                            Grid.Column="1"
                                            Text="{Binding SelectedStructureNode.TextPreview}"
-                                           Margin="0,0,0,4"
+                                           Margin="0,0,0,3"
                                            TextWrapping="Wrap"
                                            FontStyle="Italic"/>
 
@@ -453,12 +477,12 @@
                                            Grid.Column="0"
                                            Text="Attributes:"
                                            FontWeight="SemiBold"
-                                           Margin="0,0,8,4"
+                                           Margin="0,0,6,3"
                                            VerticalAlignment="Top"/>
                                 <TextBlock Grid.Row="3"
                                            Grid.Column="1"
                                            Text="{Binding SelectedStructureNode.AttributesInfo}"
-                                           Margin="0,0,0,4"
+                                           Margin="0,0,0,3"
                                            TextWrapping="Wrap"
                                            FontFamily="Consolas"
                                            FontSize="11"/>
@@ -471,27 +495,6 @@
                                      x:Name="XmlPreviewEditor"
                                      XmlText="{Binding SelectedXml, Mode=OneWay}"
                                      SearchText="{Binding SearchHighlightText, Mode=OneWay}"/>
-
-                    <!-- Action Buttons -->
-                    <StackPanel Grid.Row="3"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                Margin="0,16,0,0">
-                        <Button x:Name="ButtonCopyXml"
-                                Command="{Binding CopyXmlCommand}"
-                                Style="{StaticResource ActionButtonStyle}"
-                                Width="110"
-                                Tag="{StaticResource CopyIcon}">
-                            <TextBlock Text="Copy XML"/>
-                        </Button>
-                        <Button x:Name="ButtonSaveXml"
-                                Command="{Binding SaveXmlCommand}"
-                                Style="{StaticResource PrimaryActionButtonStyle}"
-                                Width="110"
-                                Tag="{StaticResource SaveIcon}">
-                            <TextBlock Text="Save XML"/>
-                        </Button>
-                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>
@@ -501,7 +504,7 @@
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="24,12">
+                Padding="16,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -520,13 +523,13 @@
                                Text="{Binding DocumentStatus}"
                                Style="{StaticResource BodyTextStyle}"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               Margin="0,0,16,0"/>
+                               Margin="0,0,12,0"/>
                     <Border Style="{StaticResource StatusIndicatorStyle}"
                             Background="{StaticResource SuccessBrush}"
-                            Margin="0,0,6,0"/>
+                            Margin="0,0,4,0"/>
                     <TextBlock Text="Running"
                                Style="{StaticResource CaptionTextStyle}"
-                               Margin="0,0,16,0"/>
+                               Margin="0,0,12,0"/>
                     <TextBlock Text="LiveWordXml v1.0"
                                Style="{StaticResource CaptionTextStyle}"
                                Margin="0,0,0,0"/>
