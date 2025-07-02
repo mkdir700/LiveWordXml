@@ -116,7 +116,7 @@ namespace LiveWordXml.Wpf
         private void ButtonFullscreen_Click(object sender, RoutedEventArgs e)
         {
             _isXmlPreviewFullscreen = !_isXmlPreviewFullscreen;
-            
+
             if (_isXmlPreviewFullscreen)
             {
                 // 进入全屏模式
@@ -124,11 +124,11 @@ namespace LiveWordXml.Wpf
                 Splitter1.Visibility = Visibility.Collapsed;
                 StructurePanel.Visibility = Visibility.Collapsed;
                 Splitter2.Visibility = Visibility.Collapsed;
-                
+
                 // XML Preview 占据所有列
                 XmlPreviewPanel.SetValue(Grid.ColumnProperty, 0);
                 XmlPreviewPanel.SetValue(Grid.ColumnSpanProperty, 5);
-                
+
                 // 更新按钮图标
                 ButtonFullscreen.ToolTip = "Exit Fullscreen";
                 ((TextBlock)ButtonFullscreen.Content).Text = (string)FindResource("ExitFullScreenIcon");
@@ -140,11 +140,11 @@ namespace LiveWordXml.Wpf
                 Splitter1.Visibility = Visibility.Visible;
                 StructurePanel.Visibility = ViewModel.IsStructureTreeVisible ? Visibility.Visible : Visibility.Collapsed;
                 Splitter2.Visibility = Visibility.Visible;
-                
+
                 // 恢复 XML Preview 原始位置
                 XmlPreviewPanel.SetValue(Grid.ColumnProperty, 4);
                 XmlPreviewPanel.SetValue(Grid.ColumnSpanProperty, 1);
-                
+
                 // 更新按钮图标
                 ButtonFullscreen.ToolTip = "Toggle Fullscreen XML Preview";
                 ((TextBlock)ButtonFullscreen.Content).Text = (string)FindResource("FullScreenIcon");

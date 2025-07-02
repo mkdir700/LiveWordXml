@@ -462,6 +462,101 @@
                                             <Setter Property="Background"
                                                     Value="{StaticResource SecondaryBrush}"/>
                                         </DataTrigger>
+                                        <!-- Custom template for nodes with potential children -->
+                                        <DataTrigger Binding="{Binding HasPotentialChildren}"
+                                                     Value="True">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="TreeViewItem">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition MinWidth="19"
+                                                                                  Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- Custom Expander Button -->
+                                                            <ToggleButton x:Name="Expander"
+                                                                          Grid.Column="0"
+                                                                          ClickMode="Press"
+                                                                          IsChecked="{Binding Path=IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                          Margin="1,0,1,0"
+                                                                          Width="16"
+                                                                          Height="16"
+                                                                          Focusable="False">
+                                                                <ToggleButton.Style>
+                                                                    <Style TargetType="ToggleButton">
+                                                                        <Setter Property="Template">
+                                                                            <Setter.Value>
+                                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                                    <Border Background="Transparent"
+                                                                                            Width="16"
+                                                                                            Height="16">
+                                                                                        <Path x:Name="ExpandPath"
+                                                                                              HorizontalAlignment="Center"
+                                                                                              VerticalAlignment="Center"
+                                                                                              Margin="1,1,1,1"
+                                                                                              Fill="{StaticResource TextPrimaryBrush}"
+                                                                                              Data="M 4 6 L 6 4 L 6 8 Z"/>
+                                                                                    </Border>
+                                                                                    <ControlTemplate.Triggers>
+                                                                                        <Trigger Property="IsChecked"
+                                                                                                 Value="True">
+                                                                                            <Setter Property="Data"
+                                                                                                    TargetName="ExpandPath"
+                                                                                                    Value="M 4 4 L 8 6 L 4 8 Z"/>
+                                                                                        </Trigger>
+                                                                                    </ControlTemplate.Triggers>
+                                                                                </ControlTemplate>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Style>
+                                                                </ToggleButton.Style>
+                                                            </ToggleButton>
+
+                                                            <!-- Content -->
+                                                            <Border x:Name="Bd"
+                                                                    Grid.Column="1"
+                                                                    Grid.ColumnSpan="2"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter x:Name="PART_Header"
+                                                                                  ContentSource="Header"
+                                                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                                            </Border>
+
+                                                            <!-- Children -->
+                                                            <ItemsPresenter x:Name="ItemsHost"
+                                                                            Grid.Row="1"
+                                                                            Grid.Column="1"
+                                                                            Grid.ColumnSpan="2"/>
+                                                        </Grid>
+
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsExpanded"
+                                                                     Value="false">
+                                                                <Setter TargetName="ItemsHost"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected"
+                                                                     Value="true">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="{StaticResource PrimaryBrush}"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TreeView.ItemContainerStyle>
@@ -470,12 +565,7 @@
 
                     </Grid>
 
-                    <!-- Node Count -->
-                    <TextBlock Grid.Row="2"
-                               Text="{Binding DocumentStructure, Converter={x:Static local:NodeCountConverter.Instance}}"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource CaptionTextStyle}"
-                               Margin="0,12,0,0"/>
+
                 </Grid>
             </Border>
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace LiveWordXml.Wpf.Models
@@ -11,9 +12,11 @@ namespace LiveWordXml.Wpf.Models
     /// </summary>
     public class DocumentStructureNode : ObservableObject
     {
-        private bool _isExpanded = true;
+        private bool _isExpanded = false;
         private bool _isSelected;
         private bool _isHighlighted;
+        private bool _childrenLoaded = false;
+        private Func<List<DocumentStructureNode>>? _childrenLoader;
 
         /// <summary>
         /// 节点显示名称
@@ -56,12 +59,24 @@ namespace LiveWordXml.Wpf.Models
         public ObservableCollection<DocumentStructureNode> Children { get; } = new();
 
         /// <summary>
+        /// 是否有子节点（包括未加载的）
+        /// </summary>
+        public bool HasPotentialChildren => Children.Count > 0 || _childrenLoader != null;
+
+        /// <summary>
         /// 节点是否展开
         /// </summary>
         public bool IsExpanded
         {
             get => _isExpanded;
-            set => SetProperty(ref _isExpanded, value);
+            set
+            {
+                if (SetProperty(ref _isExpanded, value) && value)
+                {
+                    // When expanding, load children if not already loaded
+                    LoadChildrenIfNeeded();
+                }
+            }
         }
 
         /// <summary>
@@ -86,6 +101,98 @@ namespace LiveWordXml.Wpf.Models
         /// 是否有子节点
         /// </summary>
         public bool HasChildren => Children.Count > 0;
+
+        /// <summary>
+        /// 设置子节点加载器（用于延迟加载）
+        /// </summary>
+        /// <param name="loader">子节点加载函数</param>
+        public void SetChildrenLoader(Func<List<DocumentStructureNode>> loader)
+        {
+            _childrenLoader = loader;
+            _childrenLoaded = false;
+
+            // Don't add placeholder immediately - let TreeView show expander based on HasPotentialChildren
+            // The placeholder will be added only when expanding if needed
+
+            OnPropertyChanged(nameof(HasPotentialChildren));
+        }
+
+        /// <summary>
+        /// 如果需要则加载子节点
+        /// </summary>
+        private void LoadChildrenIfNeeded()
+        {
+            if (!_childrenLoaded && _childrenLoader != null)
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Loading children for node: {Name} (Level: {Level})"
+                    );
+
+                    // Add a temporary placeholder to show loading state
+                    var placeholder = new DocumentStructureNode
+                    {
+                        Name = "Loading...",
+                        NodeType = "Placeholder",
+                        Level = Level + 1,
+                        Parent = this,
+                    };
+                    Children.Add(placeholder);
+
+                    // Load the actual children
+                    var children = _childrenLoader();
+                    System.Diagnostics.Debug.WriteLine($"Loaded {children.Count} children");
+
+                    // Remove the placeholder
+                    Children.Remove(placeholder);
+
+                    // Add the real children
+                    AddChildren(children);
+                    _childrenLoaded = true;
+                    _childrenLoader = null; // Clear the loader to free memory
+
+                    // Notify that HasPotentialChildren might have changed
+                    OnPropertyChanged(nameof(HasPotentialChildren));
+
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Successfully loaded {children.Count} children for {Name}"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't crash the UI
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Error loading children for {Name}: {ex.Message}"
+                    );
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+
+                    // Remove any placeholder nodes
+                    var placeholders = Children.Where(c => c.NodeType == "Placeholder").ToList();
+                    foreach (var placeholder in placeholders)
+                    {
+                        Children.Remove(placeholder);
+                    }
+
+                    // Add error node
+                    var errorNode = new DocumentStructureNode
+                    {
+                        Name = "Error loading children",
+                        NodeType = "Error",
+                        Level = Level + 1,
+                        Parent = this,
+                        TextPreview = ex.Message,
+                    };
+                    Children.Add(errorNode);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"Skipping load for {Name}: _childrenLoaded={_childrenLoaded}, _childrenLoader={(_childrenLoader != null ? "not null" : "null")}"
+                );
+            }
+        }
 
         /// <summary>
         /// 节点的显示图标（根据节点类型）
@@ -117,7 +224,7 @@ namespace LiveWordXml.Wpf.Models
                     "field" => "🏷️",
                     "equation" => "🧮",
                     "chart" => "📈",
-                    _ => "📄"
+                    _ => "📄",
                 };
             }
         }
@@ -131,6 +238,27 @@ namespace LiveWordXml.Wpf.Models
             child.Parent = this;
             child.Level = Level + 1;
             Children.Add(child);
+            OnPropertyChanged(nameof(HasChildren));
+        }
+
+        /// <summary>
+        /// 批量添加子节点（减少UI更新频率）
+        /// </summary>
+        /// <param name="children">要添加的子节点列表</param>
+        public void AddChildren(IEnumerable<DocumentStructureNode> children)
+        {
+            var childList = children.ToList();
+            if (childList.Count == 0)
+                return;
+
+            foreach (var child in childList)
+            {
+                child.Parent = this;
+                child.Level = Level + 1;
+                Children.Add(child);
+            }
+
+            // Only notify once after all children are added
             OnPropertyChanged(nameof(HasChildren));
         }
 
@@ -185,12 +313,16 @@ namespace LiveWordXml.Wpf.Models
             if (string.IsNullOrWhiteSpace(searchText))
                 return results;
 
-            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var comparison = ignoreCase
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
 
             // 检查当前节点是否匹配
-            if (Name.Contains(searchText, comparison) ||
-                TextPreview.Contains(searchText, comparison) ||
-                NodeType.Contains(searchText, comparison))
+            if (
+                Name.Contains(searchText, comparison)
+                || TextPreview.Contains(searchText, comparison)
+                || NodeType.Contains(searchText, comparison)
+            )
             {
                 results.Add(this);
             }

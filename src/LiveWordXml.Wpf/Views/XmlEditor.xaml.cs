@@ -23,14 +23,20 @@ namespace LiveWordXml.Wpf.Views
         private readonly XmlFoldingStrategy _foldingStrategy;
         private readonly SearchResultBackgroundRenderer _searchRenderer;
         private string _searchText = string.Empty;
-        
-        public static readonly DependencyProperty XmlTextProperty =
-            DependencyProperty.Register(nameof(XmlText), typeof(string), typeof(XmlEditor),
-                new PropertyMetadata(string.Empty, OnXmlTextChanged));
 
-        public static readonly DependencyProperty SearchTextProperty =
-            DependencyProperty.Register(nameof(SearchText), typeof(string), typeof(XmlEditor),
-                new PropertyMetadata(string.Empty, OnSearchTextChanged));
+        public static readonly DependencyProperty XmlTextProperty = DependencyProperty.Register(
+            nameof(XmlText),
+            typeof(string),
+            typeof(XmlEditor),
+            new PropertyMetadata(string.Empty, OnXmlTextChanged)
+        );
+
+        public static readonly DependencyProperty SearchTextProperty = DependencyProperty.Register(
+            nameof(SearchText),
+            typeof(string),
+            typeof(XmlEditor),
+            new PropertyMetadata(string.Empty, OnSearchTextChanged)
+        );
 
         public string XmlText
         {
@@ -47,26 +53,29 @@ namespace LiveWordXml.Wpf.Views
         public XmlEditor()
         {
             InitializeComponent();
-            
+
             // Set up XML syntax highlighting
             XmlTextEditor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("XML");
-            
+
             // Set up folding
             _foldingManager = FoldingManager.Install(XmlTextEditor.TextArea);
             _foldingStrategy = new XmlFoldingStrategy();
-            
+
             // Set up search highlighting
             _searchRenderer = new SearchResultBackgroundRenderer();
             XmlTextEditor.TextArea.TextView.BackgroundRenderers.Add(_searchRenderer);
-            
+
             // Install search panel
             SearchPanel.Install(XmlTextEditor);
-            
+
             // Set up document change handler for folding updates
             XmlTextEditor.TextChanged += (s, e) => UpdateFolding();
         }
 
-        private static void OnXmlTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnXmlTextChanged(
+            DependencyObject d,
+            DependencyPropertyChangedEventArgs e
+        )
         {
             if (d is XmlEditor editor && e.NewValue is string newText)
             {
@@ -76,7 +85,10 @@ namespace LiveWordXml.Wpf.Views
             }
         }
 
-        private static void OnSearchTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnSearchTextChanged(
+            DependencyObject d,
+            DependencyPropertyChangedEventArgs e
+        )
         {
             if (d is XmlEditor editor && e.NewValue is string newSearchText)
             {
@@ -89,7 +101,10 @@ namespace LiveWordXml.Wpf.Views
         {
             if (_foldingManager != null && _foldingStrategy != null)
             {
-                var newFoldings = _foldingStrategy.CreateNewFoldings(XmlTextEditor.Document, out int firstErrorOffset);
+                var newFoldings = _foldingStrategy.CreateNewFoldings(
+                    XmlTextEditor.Document,
+                    out int firstErrorOffset
+                );
                 _foldingManager.UpdateFoldings(newFoldings, firstErrorOffset);
             }
         }
@@ -97,14 +112,17 @@ namespace LiveWordXml.Wpf.Views
         private void UpdateSearchHighlighting()
         {
             _searchRenderer.ClearResults();
-            
-            if (string.IsNullOrEmpty(_searchText) || string.IsNullOrEmpty(XmlTextEditor.Document.Text))
+
+            if (
+                string.IsNullOrEmpty(_searchText)
+                || string.IsNullOrEmpty(XmlTextEditor.Document.Text)
+            )
                 return;
 
             var text = XmlTextEditor.Document.Text;
             var searchPattern = Regex.Escape(_searchText);
             var regex = new Regex(searchPattern, RegexOptions.IgnoreCase);
-            
+
             foreach (Match match in regex.Matches(text))
             {
                 var segment = new TextSegment { StartOffset = match.Index, Length = match.Length };
@@ -119,12 +137,15 @@ namespace LiveWordXml.Wpf.Views
         /// </summary>
         public void ScrollToSearchText()
         {
-            if (string.IsNullOrEmpty(_searchText) || string.IsNullOrEmpty(XmlTextEditor.Document.Text))
+            if (
+                string.IsNullOrEmpty(_searchText)
+                || string.IsNullOrEmpty(XmlTextEditor.Document.Text)
+            )
                 return;
 
             var text = XmlTextEditor.Document.Text;
             var index = text.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase);
-            
+
             if (index >= 0)
             {
                 var location = XmlTextEditor.Document.GetLocation(index);
@@ -140,7 +161,9 @@ namespace LiveWordXml.Wpf.Views
     public class SearchResultBackgroundRenderer : IBackgroundRenderer
     {
         private readonly List<TextSegment> _results = new List<TextSegment>();
-        private readonly Brush _backgroundBrush = new SolidColorBrush(Color.FromArgb(100, 255, 255, 0)); // Semi-transparent yellow
+        private readonly Brush _backgroundBrush = new SolidColorBrush(
+            Color.FromArgb(100, 255, 255, 0)
+        ); // Semi-transparent yellow
 
         public KnownLayer Layer => KnownLayer.Background;
 
@@ -175,11 +198,14 @@ namespace LiveWordXml.Wpf.Views
     /// </summary>
     public class XmlFoldingStrategy
     {
-        public IEnumerable<NewFolding> CreateNewFoldings(TextDocument document, out int firstErrorOffset)
+        public IEnumerable<NewFolding> CreateNewFoldings(
+            TextDocument document,
+            out int firstErrorOffset
+        )
         {
             firstErrorOffset = -1;
             var foldings = new List<NewFolding>();
-            
+
             try
             {
                 var text = document.Text;
@@ -189,7 +215,7 @@ namespace LiveWordXml.Wpf.Views
             {
                 // Ignore XML parsing errors for folding
             }
-            
+
             foldings.Sort((a, b) => a.StartOffset.CompareTo(b.StartOffset));
             return foldings;
         }
@@ -199,20 +225,23 @@ namespace LiveWordXml.Wpf.Views
             // Simple regex-based folding for XML elements
             var tagPattern = @"<(\w+)(?:\s[^>]*)?>.*?</\1>";
             var regex = new Regex(tagPattern, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            
+
             foreach (Match match in regex.Matches(xml))
             {
                 if (match.Length > 50) // Only fold elements with substantial content
                 {
                     var lines = xml.Substring(0, match.Index).Count(c => c == '\n');
-                    var endLines = xml.Substring(0, match.Index + match.Length).Count(c => c == '\n');
-                    
+                    var endLines = xml.Substring(0, match.Index + match.Length)
+                        .Count(c => c == '\n');
+
                     if (endLines > lines) // Multi-line element
                     {
-                        foldings.Add(new NewFolding(match.Index, match.Index + match.Length)
-                        {
-                            Name = $"<{GetTagName(match.Value)}...>"
-                        });
+                        foldings.Add(
+                            new NewFolding(match.Index, match.Index + match.Length)
+                            {
+                                Name = $"<{GetTagName(match.Value)}...>",
+                            }
+                        );
                     }
                 }
             }
@@ -224,4 +253,4 @@ namespace LiveWordXml.Wpf.Views
             return match.Success ? match.Groups[1].Value : "element";
         }
     }
-} 
+}
