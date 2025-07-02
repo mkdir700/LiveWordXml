@@ -583,6 +583,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
@@ -626,14 +627,95 @@
                         </Grid>
                     </Grid>
 
+                    <!-- Node Details Panel -->
+                    <Border Grid.Row="1"
+                            Background="{StaticResource SurfaceVariantBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,1"
+                            Margin="0,0,0,8"
+                            Visibility="{Binding SelectedStructureNode, Converter={StaticResource NullToVisibilityConverter}}">
+                        <Expander Header="📋 Node Details"
+                                  IsExpanded="True"
+                                  Margin="8">
+                            <Grid Margin="8,8,8,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Node Type -->
+                                <TextBlock Grid.Row="0"
+                                           Grid.Column="0"
+                                           Text="Type:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,8,4"
+                                           VerticalAlignment="Top"/>
+                                <TextBlock Grid.Row="0"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedStructureNode.NodeType}"
+                                           Margin="0,0,0,4"
+                                           TextWrapping="Wrap"/>
+
+                                <!-- XPath -->
+                                <TextBlock Grid.Row="1"
+                                           Grid.Column="0"
+                                           Text="XPath:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,8,4"
+                                           VerticalAlignment="Top"/>
+                                <TextBlock Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedStructureNode.XPath}"
+                                           Margin="0,0,0,4"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas"/>
+
+                                <!-- Text Preview -->
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="0"
+                                           Text="Preview:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,8,4"
+                                           VerticalAlignment="Top"/>
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedStructureNode.TextPreview}"
+                                           Margin="0,0,0,4"
+                                           TextWrapping="Wrap"
+                                           FontStyle="Italic"/>
+
+                                <!-- Attributes -->
+                                <TextBlock Grid.Row="3"
+                                           Grid.Column="0"
+                                           Text="Attributes:"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,8,4"
+                                           VerticalAlignment="Top"/>
+                                <TextBlock Grid.Row="3"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedStructureNode.AttributesInfo}"
+                                           Margin="0,0,0,4"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas"
+                                           FontSize="11"/>
+                            </Grid>
+                        </Expander>
+                    </Border>
+
                     <!-- XML Editor -->
-                    <views:XmlEditor Grid.Row="1"
+                    <views:XmlEditor Grid.Row="2"
                                      x:Name="XmlPreviewEditor"
                                      XmlText="{Binding SelectedXml, Mode=OneWay}"
                                      SearchText="{Binding SearchHighlightText, Mode=OneWay}"/>
 
                     <!-- Action Buttons -->
-                    <StackPanel Grid.Row="2"
+                    <StackPanel Grid.Row="3"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="0,16,0,0">

@@ -66,12 +66,9 @@ namespace LiveWordXml.Wpf.Services
                     throw new InvalidOperationException("No document is loaded.");
                 }
 
-                var body = _documentService.GetDocumentBody();
-                if (body == null)
-                {
-                    throw new InvalidOperationException("Unable to access document body.");
-                }
-
+                var body =
+                    _documentService.GetDocumentBody()
+                    ?? throw new InvalidOperationException("Unable to access document body.");
                 progress?.Report("Creating document structure tree...");
 
                 // 创建根节点
@@ -449,18 +446,152 @@ namespace LiveWordXml.Wpf.Services
             var name = GetElementDisplayName(element, index);
             var textPreview = GetElementTextPreview(element);
             var xpath = GenerateXPath(element);
+            var attributes = ExtractElementAttributes(element);
 
             var node = new DocumentStructureNode
             {
                 Name = name,
                 NodeType = nodeType,
                 XPath = xpath,
-                XmlContent = element.OuterXml,
+                XmlContent = GetElementXmlWithAllAttributes(element),
                 TextPreview = textPreview,
                 Level = level,
+                Attributes = attributes,
             };
 
             return node;
+        }
+
+        /// <summary>
+        /// 提取OpenXML元素的属性信息
+        /// </summary>
+        /// <param name="element">OpenXML元素</param>
+        /// <returns>属性字典</returns>
+        private Dictionary<string, string> ExtractElementAttributes(OpenXmlElement element)
+        {
+            var attributes = new Dictionary<string, string>();
+
+            if (element == null)
+                return attributes;
+
+            // Extract all attributes from the element
+            foreach (var attribute in element.GetAttributes())
+            {
+                var attributeName = string.IsNullOrEmpty(attribute.NamespaceUri)
+                    ? attribute.LocalName
+                    : $"{GetNamespacePrefix(attribute.NamespaceUri)}:{attribute.LocalName}";
+
+                attributes[attributeName] = attribute.Value ?? string.Empty;
+
+                // Debug output for paragraph elements with paraId
+                if (
+                    element is Paragraph
+                    && (attributeName.Contains("paraId") || attributeName.Contains("textId"))
+                )
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Found attribute: {attributeName} = {attribute.Value} (Namespace: {attribute.NamespaceUri})"
+                    );
+                }
+            }
+
+            return attributes;
+        }
+
+        /// <summary>
+        /// 获取包含所有属性的元素XML，确保不丢失任何命名空间属性
+        /// </summary>
+        /// <param name="element">OpenXML元素</param>
+        /// <returns>完整的XML字符串</returns>
+        private string GetElementXmlWithAllAttributes(OpenXmlElement element)
+        {
+            if (element == null)
+                return string.Empty;
+
+            try
+            {
+                // 使用XmlWriter来确保所有属性都被包含
+                var stringBuilder = new StringBuilder();
+                var settings = new XmlWriterSettings
+                {
+                    OmitXmlDeclaration = true,
+                    Indent = false,
+                    ConformanceLevel = ConformanceLevel.Fragment,
+                };
+
+                using (var writer = XmlWriter.Create(stringBuilder, settings))
+                {
+                    // 写入开始标签
+                    writer.WriteStartElement(
+                        element.Prefix ?? "w",
+                        element.LocalName,
+                        element.NamespaceUri
+                    );
+
+                    // 写入所有属性，包括扩展命名空间的属性
+                    foreach (var attr in element.GetAttributes())
+                    {
+                        var prefix = GetNamespacePrefix(attr.NamespaceUri);
+                        if (string.IsNullOrEmpty(attr.NamespaceUri))
+                        {
+                            writer.WriteAttributeString(attr.LocalName, attr.Value);
+                        }
+                        else
+                        {
+                            writer.WriteAttributeString(
+                                prefix,
+                                attr.LocalName,
+                                attr.NamespaceUri,
+                                attr.Value
+                            );
+                        }
+                    }
+
+                    // 写入子元素内容
+                    if (element.HasChildren)
+                    {
+                        foreach (var child in element.ChildElements)
+                        {
+                            writer.WriteRaw(child.OuterXml);
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(element.InnerText))
+                    {
+                        writer.WriteString(element.InnerText);
+                    }
+
+                    writer.WriteEndElement();
+                }
+
+                return stringBuilder.ToString();
+            }
+            catch
+            {
+                // 如果自定义方法失败，回退到原始方法
+                return element.OuterXml;
+            }
+        }
+
+        /// <summary>
+        /// 获取命名空间前缀
+        /// </summary>
+        /// <param name="namespaceUri">命名空间URI</param>
+        /// <returns>命名空间前缀</returns>
+        private string GetNamespacePrefix(string namespaceUri)
+        {
+            return namespaceUri switch
+            {
+                "http://schemas.openxmlformats.org/wordprocessingml/2006/main" => "w",
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships" => "r",
+                "http://schemas.openxmlformats.org/drawingml/2006/main" => "a",
+                "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" => "wp",
+                "http://schemas.openxmlformats.org/drawingml/2006/picture" => "pic",
+                "http://schemas.openxmlformats.org/package/2006/relationships" => "rel",
+                "http://schemas.microsoft.com/office/word/2010/wordml" => "w14",
+                "http://schemas.microsoft.com/office/word/2012/wordml" => "w15",
+                "http://schemas.microsoft.com/office/word/2015/wordml/symex" => "w16se",
+                _ => "ns", // Default prefix for unknown namespaces
+            };
         }
 
         /// <summary>
@@ -505,25 +636,95 @@ namespace LiveWordXml.Wpf.Services
         {
             var typeName = GetElementTypeName(element);
             var text = GetElementTextPreview(element);
+            var attributes = ExtractElementAttributes(element);
+
+            // Build attribute info string for important attributes
+            var attributeInfo = GetImportantAttributesInfo(attributes);
 
             return element switch
             {
-                Paragraph p => $"Paragraph {index}"
+                Paragraph => $"Paragraph {index}{attributeInfo}"
                     + (string.IsNullOrWhiteSpace(text) ? "" : $": {text}"),
-                Run r => $"Run {index}" + (string.IsNullOrWhiteSpace(text) ? "" : $": {text}"),
-                Text t => $"Text: {text}",
-                Table => $"Table {index}",
-                TableRow tr => $"Row {index}",
-                TableCell tc => $"Cell {index}"
+                Run => $"Run {index}{attributeInfo}"
                     + (string.IsNullOrWhiteSpace(text) ? "" : $": {text}"),
-                Hyperlink hl => $"Hyperlink {index}"
+                Text => $"Text: {text}",
+                Table => $"Table {index}{attributeInfo}",
+                TableRow => $"Row {index}{attributeInfo}",
+                TableCell => $"Cell {index}{attributeInfo}"
                     + (string.IsNullOrWhiteSpace(text) ? "" : $": {text}"),
-                BookmarkStart bs => $"Bookmark: {bs.Name?.Value ?? "Unnamed"}",
-                Drawing => $"Drawing {index}",
-                Picture => $"Picture {index}",
-                Break br => GetBreakTypeName(br),
-                _ => $"{typeName} {index}",
+                Hyperlink => $"Hyperlink {index}{attributeInfo}"
+                    + (string.IsNullOrWhiteSpace(text) ? "" : $": {text}"),
+                BookmarkStart bs => $"Bookmark: {bs.Name?.Value ?? "Unnamed"}{attributeInfo}",
+                Drawing => $"Drawing {index}{attributeInfo}",
+                Picture => $"Picture {index}{attributeInfo}",
+                Break br => GetBreakTypeName(br) + attributeInfo,
+                _ => $"{typeName} {index}{attributeInfo}",
             };
+        }
+
+        /// <summary>
+        /// 获取重要属性的信息字符串
+        /// </summary>
+        /// <param name="attributes">属性字典</param>
+        /// <returns>属性信息字符串</returns>
+        private string GetImportantAttributesInfo(Dictionary<string, string> attributes)
+        {
+            var importantAttrs = new List<string>();
+
+            // Add ParaId if present (for paragraphs) - check both w: and w14: namespaces
+            if (attributes.TryGetValue("w:paraId", out var paraId) && !string.IsNullOrEmpty(paraId))
+            {
+                importantAttrs.Add($"ParaId={paraId}");
+            }
+            else if (
+                attributes.TryGetValue("w14:paraId", out var paraId14)
+                && !string.IsNullOrEmpty(paraId14)
+            )
+            {
+                importantAttrs.Add($"ParaId={paraId14}");
+            }
+
+            // Add textId if present (for runs) - check both w: and w14: namespaces
+            if (attributes.TryGetValue("w:textId", out var textId) && !string.IsNullOrEmpty(textId))
+            {
+                importantAttrs.Add($"TextId={textId}");
+            }
+            else if (
+                attributes.TryGetValue("w14:textId", out var textId14)
+                && !string.IsNullOrEmpty(textId14)
+            )
+            {
+                importantAttrs.Add($"TextId={textId14}");
+            }
+
+            // Add rsidR if present (revision ID)
+            if (attributes.TryGetValue("w:rsidR", out var rsidR) && !string.IsNullOrEmpty(rsidR))
+            {
+                importantAttrs.Add($"RsidR={rsidR}");
+            }
+
+            // Add rsidRDefault if present (revision ID default)
+            if (
+                attributes.TryGetValue("w:rsidRDefault", out var rsidRDefault)
+                && !string.IsNullOrEmpty(rsidRDefault)
+            )
+            {
+                importantAttrs.Add($"RsidRDefault={rsidRDefault}");
+            }
+
+            // Add id if present (general ID)
+            if (attributes.TryGetValue("w:id", out var id) && !string.IsNullOrEmpty(id))
+            {
+                importantAttrs.Add($"Id={id}");
+            }
+
+            // Add name if present
+            if (attributes.TryGetValue("w:name", out var name) && !string.IsNullOrEmpty(name))
+            {
+                importantAttrs.Add($"Name={name}");
+            }
+
+            return importantAttrs.Count > 0 ? $" [{string.Join(", ", importantAttrs)}]" : "";
         }
 
         /// <summary>

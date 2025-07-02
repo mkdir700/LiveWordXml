@@ -1,11 +1,11 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml;
 using System;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace LiveWordXml.Wpf.Services
 {
@@ -36,7 +36,9 @@ namespace LiveWordXml.Wpf.Services
         {
             if (string.IsNullOrEmpty(_filePath))
             {
-                throw new InvalidOperationException("No document path is set. Please load a document first.");
+                throw new InvalidOperationException(
+                    "No document path is set. Please load a document first."
+                );
             }
 
             if (!File.Exists(_filePath))
@@ -56,7 +58,9 @@ namespace LiveWordXml.Wpf.Services
         {
             if (string.IsNullOrEmpty(_filePath))
             {
-                throw new InvalidOperationException("No document is loaded. Please load a document first.");
+                throw new InvalidOperationException(
+                    "No document is loaded. Please load a document first."
+                );
             }
 
             if (!File.Exists(_filePath))
@@ -68,15 +72,7 @@ namespace LiveWordXml.Wpf.Services
 
             try
             {
-                // First try to open the original file directly
-                var openSettings = new OpenSettings
-                {
-                    MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(
-                        MarkupCompatibilityProcessMode.ProcessAllParts,
-                        FileFormatVersions.Office2019)
-                };
-
-                var document = WordprocessingDocument.Open(fileToOpen, false, openSettings);
+                var document = WordprocessingDocument.Open(fileToOpen, false);
 
                 // Validate that we can actually read the document content
                 if (document?.MainDocumentPart?.Document != null)
@@ -93,27 +89,24 @@ namespace LiveWordXml.Wpf.Services
                 try
                 {
                     fileToOpen = CreateTemporaryCopy(_filePath);
-
-                    var openSettings = new OpenSettings
-                    {
-                        MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(
-                            MarkupCompatibilityProcessMode.ProcessAllParts,
-                            FileFormatVersions.Office2019)
-                    };
-
-                    var document = WordprocessingDocument.Open(fileToOpen, false, openSettings);
+                    var document = WordprocessingDocument.Open(fileToOpen, false);
 
                     if (document?.MainDocumentPart?.Document == null)
                     {
                         document?.Dispose();
-                        throw new InvalidOperationException("Unable to access document content from temporary copy.");
+                        throw new InvalidOperationException(
+                            "Unable to access document content from temporary copy."
+                        );
                     }
 
                     return document;
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"Cannot open document. File may be locked and unable to create temporary copy: {ex.Message}", ex);
+                    throw new InvalidOperationException(
+                        $"Cannot open document. File may be locked and unable to create temporary copy: {ex.Message}",
+                        ex
+                    );
                 }
             }
             catch (Exception ex)
@@ -136,7 +129,10 @@ namespace LiveWordXml.Wpf.Services
                 string tempDirectory = Path.GetTempPath();
                 string fileName = Path.GetFileNameWithoutExtension(originalFilePath);
                 string extension = Path.GetExtension(originalFilePath);
-                _tempFilePath = Path.Combine(tempDirectory, $"{fileName}_temp_{DateTime.Now:yyyyMMdd_HHmmss}{extension}");
+                _tempFilePath = Path.Combine(
+                    tempDirectory,
+                    $"{fileName}_temp_{DateTime.Now:yyyyMMdd_HHmmss}{extension}"
+                );
 
                 // 尝试多种方式复制文件
                 if (TryCopyWithFileStream(originalFilePath, _tempFilePath))
@@ -154,7 +150,10 @@ namespace LiveWordXml.Wpf.Services
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to create temporary copy: {ex.Message}", ex);
+                throw new InvalidOperationException(
+                    $"Failed to create temporary copy: {ex.Message}",
+                    ex
+                );
             }
         }
 
@@ -165,8 +164,18 @@ namespace LiveWordXml.Wpf.Services
         {
             try
             {
-                using var sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var destStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+                using var sourceStream = new FileStream(
+                    source,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite
+                );
+                using var destStream = new FileStream(
+                    destination,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None
+                );
                 sourceStream.CopyTo(destStream);
                 return true;
             }
@@ -277,7 +286,7 @@ namespace LiveWordXml.Wpf.Services
                     IndentChars = "  ",
                     NewLineChars = "\r\n",
                     NewLineHandling = NewLineHandling.Replace,
-                    OmitXmlDeclaration = true
+                    OmitXmlDeclaration = true,
                 };
 
                 using var xmlWriter = XmlWriter.Create(stringBuilder, xmlWriterSettings);

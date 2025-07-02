@@ -49,6 +49,11 @@ namespace LiveWordXml.Wpf.Models
         public int Level { get; set; }
 
         /// <summary>
+        /// 元素的属性集合（键值对形式存储）
+        /// </summary>
+        public Dictionary<string, string> Attributes { get; set; } = [];
+
+        /// <summary>
         /// 父节点引用
         /// </summary>
         public DocumentStructureNode? Parent { get; set; }
@@ -227,6 +232,41 @@ namespace LiveWordXml.Wpf.Models
                     _ => "📄",
                 };
             }
+        }
+
+        /// <summary>
+        /// 获取格式化的属性信息字符串
+        /// </summary>
+        public string AttributesInfo
+        {
+            get
+            {
+                if (Attributes == null || Attributes.Count == 0)
+                    return "No attributes";
+
+                var attributeStrings = Attributes.Select(kvp => $"{kvp.Key}=\"{kvp.Value}\"");
+                return string.Join(", ", attributeStrings);
+            }
+        }
+
+        /// <summary>
+        /// 检查是否有指定的属性
+        /// </summary>
+        /// <param name="attributeName">属性名称</param>
+        /// <returns>是否存在该属性</returns>
+        public bool HasAttribute(string attributeName)
+        {
+            return Attributes?.ContainsKey(attributeName) == true;
+        }
+
+        /// <summary>
+        /// 获取指定属性的值
+        /// </summary>
+        /// <param name="attributeName">属性名称</param>
+        /// <returns>属性值，如果不存在则返回null</returns>
+        public string? GetAttributeValue(string attributeName)
+        {
+            return Attributes?.TryGetValue(attributeName, out var value) == true ? value : null;
         }
 
         /// <summary>
