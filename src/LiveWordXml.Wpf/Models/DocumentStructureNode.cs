@@ -15,6 +15,7 @@ namespace LiveWordXml.Wpf.Models
         private bool _isExpanded = false;
         private bool _isSelected;
         private bool _isHighlighted;
+        private bool _hasHighlightedDescendants;
         private bool _childrenLoaded = false;
         private Func<List<DocumentStructureNode>>? _childrenLoader;
 
@@ -99,7 +100,23 @@ namespace LiveWordXml.Wpf.Models
         public bool IsHighlighted
         {
             get => _isHighlighted;
-            set => SetProperty(ref _isHighlighted, value);
+            set
+            {
+                if (SetProperty(ref _isHighlighted, value))
+                {
+                    // Update parent nodes' HasHighlightedDescendants property
+                    UpdateParentHighlightStatus();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 节点的子树是否包含高亮节点（用于搜索结果指示）
+        /// </summary>
+        public bool HasHighlightedDescendants
+        {
+            get => _hasHighlightedDescendants;
+            set => SetProperty(ref _hasHighlightedDescendants, value);
         }
 
         /// <summary>
@@ -367,6 +384,12 @@ namespace LiveWordXml.Wpf.Models
                 results.Add(this);
             }
 
+            // 如果有潜在子节点但还未加载，先加载它们以确保搜索的完整性
+            if (HasPotentialChildren && !_childrenLoaded)
+            {
+                LoadChildrenIfNeeded();
+            }
+
             // 递归搜索子节点
             foreach (var child in Children)
             {
@@ -411,6 +434,87 @@ namespace LiveWordXml.Wpf.Models
             {
                 child.CollapseAll();
             }
+        }
+
+        /// <summary>
+        /// Update parent nodes' HasHighlightedDescendants property based on current highlight status
+        /// </summary>
+        private void UpdateParentHighlightStatus()
+        {
+            var current = Parent;
+            while (current != null)
+            {
+                var hasHighlightedDescendants = current.HasHighlightedDescendantsRecursive();
+                current.HasHighlightedDescendants = hasHighlightedDescendants;
+                current = current.Parent;
+            }
+        }
+
+        /// <summary>
+        /// Check if this node or any of its descendants are highlighted
+        /// </summary>
+        /// <returns>True if this node or any descendant is highlighted</returns>
+        private bool HasHighlightedDescendantsRecursive()
+        {
+            // Check if current node is highlighted
+            if (IsHighlighted)
+                return true;
+
+            // Check children recursively
+            foreach (var child in Children)
+            {
+                if (child.HasHighlightedDescendantsRecursive())
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Check if any of the direct or indirect children are highlighted
+        /// This is used to show the search indicator for nodes that contain search results in their subtree
+        /// </summary>
+        /// <returns>True if any child or descendant is highlighted</returns>
+        private bool HasHighlightedDescendantsInChildren()
+        {
+            // Check children recursively (but not this node itself)
+            foreach (var child in Children)
+            {
+                if (child.HasHighlightedDescendantsRecursive())
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Clear all highlights in this node and its descendants
+        /// </summary>
+        public void ClearHighlightsRecursive()
+        {
+            IsHighlighted = false;
+            HasHighlightedDescendants = false;
+            foreach (var child in Children)
+            {
+                child.ClearHighlightsRecursive();
+            }
+        }
+
+        /// <summary>
+        /// Update highlight status for all nodes in the tree
+        /// This should be called after setting highlights to ensure parent indicators are correct
+        /// </summary>
+        public void UpdateHighlightStatusRecursive()
+        {
+            // Update descendants first
+            foreach (var child in Children)
+            {
+                child.UpdateHighlightStatusRecursive();
+            }
+
+            // Update this node's HasHighlightedDescendants
+            // Show the indicator if this node has highlighted descendants, regardless of whether this node itself is highlighted
+            HasHighlightedDescendants = HasHighlightedDescendantsInChildren();
         }
 
         public override string ToString()

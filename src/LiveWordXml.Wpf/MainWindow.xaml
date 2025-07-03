@@ -432,6 +432,7 @@
                                                 x:Name="DocumentNavigator"
                                                 RootNodes="{Binding DocumentStructure.Children}"
                                                 SelectedNode="{Binding SelectedStructureNode, Mode=TwoWay}"
+                                                CurrentSearchText="{Binding SelectedText}"
                                                 NodeSelected="OnNavigatorNodeSelected"/>
                 </Grid>
             </Border>

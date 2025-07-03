@@ -54,13 +54,19 @@ namespace LiveWordXml.Wpf.ViewModels
             PreviousCommand = new RelayCommand(NavigatePrevious, CanNavigatePrevious);
             NextCommand = new RelayCommand(NavigateNext, CanNavigateNext);
             CopyXmlCommand = new RelayCommand(CopyXml, () => !string.IsNullOrEmpty(SelectedXml));
-            SaveXmlCommand = new AsyncRelayCommand(SaveXmlAsync, () => !string.IsNullOrEmpty(SelectedXml));
+            SaveXmlCommand = new AsyncRelayCommand(
+                SaveXmlAsync,
+                () => !string.IsNullOrEmpty(SelectedXml)
+            );
             ScrollToSearchCommand = new RelayCommand(() => OnScrollToSearchRequested?.Invoke());
 
             // Document Structure Commands
             ExpandAllCommand = new RelayCommand(ExpandAll, () => DocumentStructure != null);
             CollapseAllCommand = new RelayCommand(CollapseAll, () => DocumentStructure != null);
-            RefreshStructureCommand = new AsyncRelayCommand(RefreshDocumentStructureAsync, () => IsDocumentLoaded);
+            RefreshStructureCommand = new AsyncRelayCommand(
+                RefreshDocumentStructureAsync,
+                () => IsDocumentLoaded
+            );
             ShowPerformanceReportCommand = new RelayCommand(ShowPerformanceReport);
         }
 
@@ -197,7 +203,8 @@ namespace LiveWordXml.Wpf.ViewModels
         {
             get
             {
-                if (MatchCount == 0) return "No matches";
+                if (MatchCount == 0)
+                    return "No matches";
                 if (_currentMatchIndex >= 0)
                     return $"Match {_currentMatchIndex + 1} of {MatchCount}";
                 return $"{MatchCount} matches found";
@@ -363,7 +370,8 @@ namespace LiveWordXml.Wpf.ViewModels
                 // Use the new async method with cancellation support
                 var structure = await _documentStructureService.BuildDocumentStructureAsync(
                     _searchCancellationTokenSource?.Token ?? CancellationToken.None,
-                    progress);
+                    progress
+                );
 
                 await _dispatcher.InvokeAsync(() =>
                 {
@@ -414,11 +422,14 @@ namespace LiveWordXml.Wpf.ViewModels
                     report,
                     "Performance Report",
                     System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Information);
+                    System.Windows.MessageBoxImage.Information
+                );
             }
             catch (Exception ex)
             {
-                _notificationService.ShowError($"Error generating performance report: {ex.Message}");
+                _notificationService.ShowError(
+                    $"Error generating performance report: {ex.Message}"
+                );
             }
         }
 
@@ -430,7 +441,10 @@ namespace LiveWordXml.Wpf.ViewModels
                 return;
             }
 
-            var matchingNodes = _documentStructureService.FindNodesWithText(DocumentStructure, searchText);
+            var matchingNodes = _documentStructureService.FindNodesWithText(
+                DocumentStructure,
+                searchText
+            );
 
             // Clear previous highlights
             ClearHighlights();
@@ -441,22 +455,19 @@ namespace LiveWordXml.Wpf.ViewModels
                 node.IsHighlighted = true;
                 node.ExpandToNode(); // Expand path to highlighted node
             }
+
+            // Update parent highlight indicators after setting all highlights
+            if (DocumentStructure != null)
+            {
+                DocumentStructure.UpdateHighlightStatusRecursive();
+            }
         }
 
         private void ClearHighlights()
         {
             if (DocumentStructure != null)
             {
-                ClearHighlightsRecursive(DocumentStructure);
-            }
-        }
-
-        private void ClearHighlightsRecursive(DocumentStructureNode node)
-        {
-            node.IsHighlighted = false;
-            foreach (var child in node.Children)
-            {
-                ClearHighlightsRecursive(child);
+                DocumentStructure.ClearHighlightsRecursive();
             }
         }
 
@@ -480,7 +491,10 @@ namespace LiveWordXml.Wpf.ViewModels
 
                 var textMatchingService = new TextMatchingService(_documentService);
                 var currentText = SelectedText; // Capture current text value
-                var matches = await Task.Run(() => textMatchingService.MatchTextToXml(currentText), cancellationToken);
+                var matches = await Task.Run(
+                    () => textMatchingService.MatchTextToXml(currentText),
+                    cancellationToken
+                );
 
                 // Check if operation was cancelled after async operation
                 cancellationToken.ThrowIfCancellationRequested();
@@ -501,7 +515,7 @@ namespace LiveWordXml.Wpf.ViewModels
                             Index = i + 1,
                             XmlContent = matches[i],
                             ElementType = ExtractElementType(matches[i]),
-                            Preview = CreatePreview(matches[i])
+                            Preview = CreatePreview(matches[i]),
                         };
                         MatchedElements.Add(element);
                     }
@@ -513,7 +527,9 @@ namespace LiveWordXml.Wpf.ViewModels
                     {
                         SelectedMatch = MatchedElements.First();
                         StatusMessage = $"Found {MatchCount} matching elements";
-                        _notificationService.ShowNotification($"Found {MatchCount} matching XML elements");
+                        _notificationService.ShowNotification(
+                            $"Found {MatchCount} matching XML elements"
+                        );
                     }
                     else
                     {
@@ -556,9 +572,7 @@ namespace LiveWordXml.Wpf.ViewModels
             // 根据格式化选项设置XML内容
             if (!string.IsNullOrEmpty(xmlContent))
             {
-                SelectedXml = IsFormattedXml
-                    ? _documentService.FormatXml(xmlContent)
-                    : xmlContent;
+                SelectedXml = IsFormattedXml ? _documentService.FormatXml(xmlContent) : xmlContent;
             }
             else
             {
@@ -583,6 +597,7 @@ namespace LiveWordXml.Wpf.ViewModels
         }
 
         private bool CanNavigatePrevious() => _currentMatchIndex > 0;
+
         private bool CanNavigateNext() => _currentMatchIndex < MatchCount - 1;
 
         private void CopyXml()
@@ -597,7 +612,8 @@ namespace LiveWordXml.Wpf.ViewModels
 
         private async Task SaveXmlAsync()
         {
-            if (string.IsNullOrEmpty(SelectedXml)) return;
+            if (string.IsNullOrEmpty(SelectedXml))
+                return;
 
             try
             {
@@ -605,13 +621,14 @@ namespace LiveWordXml.Wpf.ViewModels
                 {
                     Filter = "XML files (*.xml)|*.xml|Text files (*.txt)|*.txt|All files (*.*)|*.*",
                     FilterIndex = 1,
-                    DefaultExt = "xml"
+                    DefaultExt = "xml",
                 };
 
                 if (saveFileDialog.ShowDialog() == true)
                 {
                     await System.IO.File.WriteAllTextAsync(saveFileDialog.FileName, SelectedXml);
-                    StatusMessage = $"XML saved to {System.IO.Path.GetFileName(saveFileDialog.FileName)}";
+                    StatusMessage =
+                        $"XML saved to {System.IO.Path.GetFileName(saveFileDialog.FileName)}";
                     _notificationService.ShowNotification("XML saved successfully!");
                 }
             }
@@ -656,7 +673,10 @@ namespace LiveWordXml.Wpf.ViewModels
             try
             {
                 // First try to find exact match by XML content
-                var exactNode = _documentStructureService.FindNodeByXmlContent(DocumentStructure, matchedElement.XmlContent);
+                var exactNode = _documentStructureService.FindNodeByXmlContent(
+                    DocumentStructure,
+                    matchedElement.XmlContent
+                );
                 if (exactNode != null)
                 {
                     ExpandAndHighlightNode(exactNode);
@@ -664,12 +684,17 @@ namespace LiveWordXml.Wpf.ViewModels
                 }
 
                 // Fallback: find nodes containing the text
-                var matchingNodes = _documentStructureService.FindNodesWithText(DocumentStructure, matchedElement.Preview);
+                var matchingNodes = _documentStructureService.FindNodesWithText(
+                    DocumentStructure,
+                    matchedElement.Preview
+                );
                 if (matchingNodes.Any())
                 {
                     var bestMatch = matchingNodes
                         .Where(node => !string.IsNullOrEmpty(node.XmlContent))
-                        .OrderBy(node => Math.Abs(node.XmlContent.Length - matchedElement.XmlContent.Length))
+                        .OrderBy(node =>
+                            Math.Abs(node.XmlContent.Length - matchedElement.XmlContent.Length)
+                        )
                         .FirstOrDefault();
 
                     if (bestMatch != null)

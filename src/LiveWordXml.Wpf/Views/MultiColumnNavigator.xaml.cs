@@ -38,6 +38,14 @@ namespace LiveWordXml.Wpf.Views
                 new PropertyMetadata(null)
             );
 
+        public static readonly DependencyProperty CurrentSearchTextProperty =
+            DependencyProperty.Register(
+                "CurrentSearchText",
+                typeof(string),
+                typeof(MultiColumnNavigator),
+                new PropertyMetadata(string.Empty)
+            );
+
         // Events
         public event EventHandler<DocumentStructureNode> NodeSelected;
 
@@ -72,6 +80,12 @@ namespace LiveWordXml.Wpf.Views
         {
             get => (DocumentStructureNode)GetValue(SelectedRootNodeProperty);
             set => SetValue(SelectedRootNodeProperty, value);
+        }
+
+        public string CurrentSearchText
+        {
+            get => (string)GetValue(CurrentSearchTextProperty);
+            set => SetValue(CurrentSearchTextProperty, value);
         }
 
         // Event Handlers
@@ -141,6 +155,14 @@ namespace LiveWordXml.Wpf.Views
                     System.Diagnostics.Debug.WriteLine(
                         $"HandleNodeSelection: Creating column for {selectedNode.Children.Count} children"
                     );
+
+                    // If the selected node is highlighted (search match) and we have search text,
+                    // apply search highlighting to the newly loaded children
+                    if (selectedNode.IsHighlighted && !string.IsNullOrWhiteSpace(CurrentSearchText))
+                    {
+                        ApplySearchToChildren(selectedNode, CurrentSearchText);
+                    }
+
                     CreateOrUpdateColumn(columnLevel + 1, selectedNode.Children, selectedNode.Name);
                 }
                 else
@@ -448,13 +470,155 @@ namespace LiveWordXml.Wpf.Views
         // Public Methods
         public void NavigateToNode(DocumentStructureNode targetNode)
         {
-            // Implementation for programmatic navigation
-            // This would build the column path to reach the target node
+            if (targetNode == null)
+                return;
+
+            // Build the path from root to target node
+            var pathToTarget = BuildPathToNode(targetNode);
+            if (pathToTarget == null || pathToTarget.Count == 0)
+                return;
+
+            // Reset navigation and rebuild columns following the path
+            ResetNavigation();
+
+            // Navigate through each level of the path
+            for (int level = 0; level < pathToTarget.Count; level++)
+            {
+                var nodeAtLevel = pathToTarget[level];
+
+                if (level == 0)
+                {
+                    // Select in root nodes list
+                    RootNodesList.SelectedItem = nodeAtLevel;
+                    SelectedRootNode = nodeAtLevel;
+                }
+                else
+                {
+                    // Ensure the parent node is expanded to load children
+                    var parentNode = pathToTarget[level - 1];
+                    parentNode.IsExpanded = true;
+
+                    // Create or update the column for this level
+                    if (parentNode.Children?.Any() == true)
+                    {
+                        CreateOrUpdateColumn(level, parentNode.Children, parentNode.Name);
+
+                        // Select the node in the appropriate column
+                        var listBox = GetListBoxForLevel(level);
+                        if (listBox != null)
+                        {
+                            listBox.SelectedItem = nodeAtLevel;
+                        }
+                    }
+                }
+            }
+
+            // Scroll to show the target node
+            ScrollToShowNewColumn();
+        }
+
+        /// <summary>
+        /// Navigate to the first highlighted node found in the tree
+        /// </summary>
+        public void NavigateToFirstHighlightedNode()
+        {
+            if (RootNodes == null)
+                return;
+
+            var highlightedNode = FindFirstHighlightedNode(RootNodes);
+            if (highlightedNode != null)
+            {
+                NavigateToNode(highlightedNode);
+            }
+        }
+
+        /// <summary>
+        /// Find the first highlighted node in the tree
+        /// </summary>
+        private DocumentStructureNode? FindFirstHighlightedNode(
+            IEnumerable<DocumentStructureNode> nodes
+        )
+        {
+            foreach (var node in nodes)
+            {
+                if (node.IsHighlighted)
+                    return node;
+
+                var highlightedChild = FindFirstHighlightedNode(node.Children);
+                if (highlightedChild != null)
+                    return highlightedChild;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Build the path from root to the target node
+        /// </summary>
+        private List<DocumentStructureNode>? BuildPathToNode(DocumentStructureNode targetNode)
+        {
+            var path = new List<DocumentStructureNode>();
+            var current = targetNode;
+
+            // Build path from target to root
+            while (current != null)
+            {
+                path.Insert(0, current);
+                current = current.Parent;
+            }
+
+            // Verify the path starts with a root node
+            if (path.Count > 0 && RootNodes?.Contains(path[0]) == true)
+            {
+                return path;
+            }
+
+            return null;
         }
 
         public List<DocumentStructureNode> GetNavigationPath()
         {
             return [.. _navigationPath];
+        }
+
+        /// <summary>
+        /// Apply search highlighting to children of a node
+        /// </summary>
+        /// <param name="parentNode">The parent node whose children should be searched</param>
+        /// <param name="searchText">The search text to match against</param>
+        private void ApplySearchToChildren(DocumentStructureNode parentNode, string searchText)
+        {
+            if (parentNode?.Children == null || string.IsNullOrWhiteSpace(searchText))
+                return;
+
+            System.Diagnostics.Debug.WriteLine(
+                $"ApplySearchToChildren: Searching {parentNode.Children.Count} children of '{parentNode.Name}' for '{searchText}'"
+            );
+
+            var comparison = StringComparison.OrdinalIgnoreCase;
+
+            foreach (var child in parentNode.Children)
+            {
+                // Check if child matches search criteria
+                bool isMatch =
+                    child.Name.Contains(searchText, comparison)
+                    || child.TextPreview.Contains(searchText, comparison)
+                    || child.NodeType.Contains(searchText, comparison);
+
+                if (isMatch)
+                {
+                    child.IsHighlighted = true;
+                    System.Diagnostics.Debug.WriteLine($"  - Highlighted child: {child.Name}");
+                }
+
+                // Recursively search in grandchildren if they are already loaded
+                if (child.Children?.Any() == true)
+                {
+                    ApplySearchToChildren(child, searchText);
+                }
+            }
+
+            // Update parent highlight indicators
+            parentNode.UpdateHighlightStatusRecursive();
         }
     }
 }
