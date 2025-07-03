@@ -285,13 +285,28 @@
                                                                 Background="{TemplateBinding Background}"
                                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                                                CornerRadius="4">
+                                                                CornerRadius="4"
+                                                                SnapsToDevicePixels="True">
                                                                 <ScrollViewer x:Name="PART_ContentHost"
-                                                                              Margin="{TemplateBinding Padding}"
-                                                                              VerticalAlignment="Center"/>
+                                                                              Focusable="False"
+                                                                              HorizontalScrollBarVisibility="Hidden"
+                                                                              VerticalScrollBarVisibility="Hidden"
+                                                                              Margin="{TemplateBinding Padding}"/>
                                                         </Border>
                                                         <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsFocused"
+                                                                <Trigger Property="IsEnabled"
+                                                                         Value="False">
+                                                                        <Setter TargetName="border"
+                                                                                Property="Opacity"
+                                                                                Value="0.56"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsMouseOver"
+                                                                         Value="True">
+                                                                        <Setter TargetName="border"
+                                                                                Property="BorderBrush"
+                                                                                Value="{StaticResource BorderVariantBrush}"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused"
                                                                          Value="True">
                                                                         <Setter TargetName="border"
                                                                                 Property="BorderBrush"
@@ -299,12 +314,6 @@
                                                                         <Setter TargetName="border"
                                                                                 Property="BorderThickness"
                                                                                 Value="2"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsMouseOver"
-                                                                         Value="True">
-                                                                        <Setter TargetName="border"
-                                                                                Property="BorderBrush"
-                                                                                Value="{StaticResource BorderVariantBrush}"/>
                                                                 </Trigger>
                                                         </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -472,8 +481,7 @@
                         <!-- Default Styles -->
                         <Style TargetType="Button"
                                BasedOn="{StaticResource ModernButtonStyle}"/>
-                        <Style TargetType="TextBox"
-                               BasedOn="{StaticResource ModernTextBoxStyle}"/>
+                        <!-- TextBox default style removed to allow normal behavior -->
                         <Style TargetType="ListView"
                                BasedOn="{StaticResource ModernListViewStyle}"/>
                         <Style TargetType="ListViewItem"

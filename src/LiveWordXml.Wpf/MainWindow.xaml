@@ -112,7 +112,7 @@
                     Value="4,0"/>
         </Style>
 
-        <!-- TextBox with Placeholder Style -->
+        <!-- Modern Search TextBox Style -->
         <Style x:Key="PlaceholderTextBoxStyle"
                TargetType="TextBox">
             <Setter Property="Background"
@@ -127,28 +127,37 @@
                     Value="12,8"/>
             <Setter Property="FontSize"
                     Value="14"/>
+            <Setter Property="CaretBrush"
+                    Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="SelectionBrush"
+                    Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="SelectionOpacity"
+                    Value="0.3"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <Grid>
+                        <Grid>
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
                                 <ScrollViewer x:Name="PART_ContentHost"
-                                              Margin="{TemplateBinding Padding}"
-                                              VerticalAlignment="Top"/>
-                                <TextBlock x:Name="PlaceholderText"
-                                           Text="{TemplateBinding Tag}"
-                                           Foreground="{StaticResource TextTertiaryBrush}"
-                                           Margin="{TemplateBinding Padding}"
-                                           VerticalAlignment="Top"
-                                           IsHitTestVisible="False"
-                                           FontStyle="Italic"
-                                           Visibility="Collapsed"/>
-                            </Grid>
-                        </Border>
+                                              Focusable="False"
+                                              HorizontalScrollBarVisibility="Hidden"
+                                              VerticalScrollBarVisibility="Hidden"
+                                              Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <TextBlock x:Name="PlaceholderText"
+                                       Text="{TemplateBinding Tag}"
+                                       Foreground="{StaticResource TextTertiaryBrush}"
+                                       Margin="{TemplateBinding Padding}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Left"
+                                       IsHitTestVisible="False"
+                                       FontStyle="Italic"
+                                       Visibility="Collapsed"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <!-- Focus state styling -->
                             <Trigger Property="IsFocused"
@@ -169,7 +178,7 @@
                                         Value="{StaticResource BorderVariantBrush}"/>
                             </Trigger>
 
-                            <!-- Show placeholder only when text is empty AND not focused -->
+                            <!-- Show placeholder when text is empty and not focused -->
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="Text"
@@ -182,7 +191,7 @@
                                         Value="Visible"/>
                             </MultiTrigger>
 
-                            <!-- Show placeholder only when text is null AND not focused -->
+                            <!-- Show placeholder when text is null and not focused -->
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="Text"
@@ -229,16 +238,105 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBox Grid.Column="0"
-                             x:Name="TextBoxSelectedText"
-                             Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36"
-                             TextWrapping="NoWrap"
-                             AcceptsReturn="False"
-                             Margin="0,0,12,0"
-                             VerticalContentAlignment="Center"
-                             Style="{StaticResource PlaceholderTextBoxStyle}"
-                             Tag="Enter keywords to search"/>
+                    <!-- 带占位符的现代化搜索框 -->
+                    <Grid Grid.Column="0"
+                          Margin="0,0,12,0">
+                        <!-- 主要的TextBox -->
+                        <TextBox x:Name="TextBoxSelectedText"
+                                 Height="36"
+                                 FontSize="14"
+                                 Padding="12,8"
+                                 TextChanged="TextBoxSelectedText_TextChanged"
+                                 Background="{StaticResource SurfaceBrush}"
+                                 Foreground="{StaticResource TextPrimaryBrush}"
+                                 BorderBrush="{StaticResource BorderBrush}"
+                                 BorderThickness="1"
+                                 CaretBrush="{StaticResource TextPrimaryBrush}"
+                                 SelectionBrush="{StaticResource PrimaryBrush}"
+                                 SelectionOpacity="0.3"
+                                 Style="{x:Null}">
+                            <TextBox.Resources>
+                                <!-- 自定义样式，但保持简单 -->
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Border x:Name="border"
+                                                        Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        CornerRadius="8"
+                                                        SnapsToDevicePixels="True">
+                                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                                  Focusable="False"
+                                                                  HorizontalScrollBarVisibility="Hidden"
+                                                                  VerticalScrollBarVisibility="Hidden"
+                                                                  Margin="{TemplateBinding Padding}"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <!-- 鼠标悬停效果 -->
+                                                    <Trigger Property="IsMouseOver"
+                                                             Value="True">
+                                                        <Setter TargetName="border"
+                                                                Property="BorderBrush"
+                                                                Value="{StaticResource BorderVariantBrush}"/>
+                                                        <Setter TargetName="border"
+                                                                Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#000000"
+                                                                                  Opacity="0.1"
+                                                                                  BlurRadius="4"
+                                                                                  ShadowDepth="1"
+                                                                                  Direction="270"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <!-- 焦点状态效果 -->
+                                                    <Trigger Property="IsKeyboardFocused"
+                                                             Value="True">
+                                                        <Setter TargetName="border"
+                                                                Property="BorderBrush"
+                                                                Value="{StaticResource PrimaryBrush}"/>
+                                                        <Setter TargetName="border"
+                                                                Property="BorderThickness"
+                                                                Value="2"/>
+                                                        <Setter TargetName="border"
+                                                                Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="{Binding Source={StaticResource PrimaryBrush}, Path=Color}"
+                                                                                  Opacity="0.3"
+                                                                                  BlurRadius="8"
+                                                                                  ShadowDepth="0"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <!-- 禁用状态 -->
+                                                    <Trigger Property="IsEnabled"
+                                                             Value="False">
+                                                        <Setter TargetName="border"
+                                                                Property="Opacity"
+                                                                Value="0.6"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+
+                        <!-- 占位符文本 -->
+                        <TextBlock x:Name="PlaceholderText"
+                                   Text="Enter keywords to search"
+                                   Foreground="{StaticResource TextTertiaryBrush}"
+                                   FontSize="14"
+                                   FontStyle="Italic"
+                                   Margin="14,0,14,0"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   IsHitTestVisible="False"
+                                   Visibility="Visible"/>
+                    </Grid>
 
                     <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"

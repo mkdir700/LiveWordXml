@@ -24,6 +24,13 @@ namespace LiveWordXml.Wpf
 
             // Subscribe to scroll to structure node event
             viewModel.OnScrollToStructureNodeRequested += ScrollToStructureNode;
+
+            // 初始化占位符文本状态
+            UpdatePlaceholderVisibility();
+
+            // 订阅焦点事件
+            TextBoxSelectedText.GotFocus += TextBoxSelectedText_GotFocus;
+            TextBoxSelectedText.LostFocus += TextBoxSelectedText_LostFocus;
         }
 
         /// <summary>
@@ -104,6 +111,50 @@ namespace LiveWordXml.Wpf
                 ButtonFullscreen.ToolTip = "Toggle Fullscreen XML Preview";
                 ((TextBlock)ButtonFullscreen.Content).Text = (string)FindResource("FullScreenIcon");
             }
+        }
+
+        /// <summary>
+        /// 处理搜索框文本变化事件
+        /// </summary>
+        private void TextBoxSelectedText_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                // 直接更新ViewModel的SelectedText属性
+                ViewModel.SelectedText = textBox.Text;
+
+                // 更新占位符文本的可见性
+                UpdatePlaceholderVisibility();
+            }
+        }
+
+        /// <summary>
+        /// 处理搜索框获得焦点事件
+        /// </summary>
+        private void TextBoxSelectedText_GotFocus(object sender, RoutedEventArgs e)
+        {
+            UpdatePlaceholderVisibility();
+        }
+
+        /// <summary>
+        /// 处理搜索框失去焦点事件
+        /// </summary>
+        private void TextBoxSelectedText_LostFocus(object sender, RoutedEventArgs e)
+        {
+            UpdatePlaceholderVisibility();
+        }
+
+        /// <summary>
+        /// 更新占位符文本的可见性
+        /// </summary>
+        private void UpdatePlaceholderVisibility()
+        {
+            // 只有当文本框为空且未获得焦点时才显示占位符
+            bool shouldShowPlaceholder =
+                string.IsNullOrEmpty(TextBoxSelectedText.Text) && !TextBoxSelectedText.IsFocused;
+            PlaceholderText.Visibility = shouldShowPlaceholder
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         protected override void OnClosed(System.EventArgs e)
